@@ -25,15 +25,14 @@ $$ TOOLCHANGEEND
 $$  End of generation of : Tool Change.1
 $$ OPERATION NAME : Post-Processor Instruction.1
 $$  Start generation of : Post-Processor Instruction.1
-LOADTOOL/13,12.5
-SPINDLE/400CLW
-SPINDLE/900CCLW
-SPINDLE/10000CLW
+LOADTL/13,12.5
+SPINDL/400,CLW
+SPINDL/900CCLW
+SPINDL/10000,CLW
 $$  End of generation of : Post-Processor Instruction.1
 $$ OPERATION NAME : Point to Point .1
 $$  Start generation of : Point to Point .1
 PPRINT (SDFSDFSDFSD)
-LOADTL/1,1
 FEDRAT/ 3000.0000,MMPM
 GOTO  /  -2.962509,   7.156743,  18.617499,   0.085971,   0.537266,   0$
 .839020
@@ -67,7 +66,7 @@ GOTO  /  -2.000000,  -4.000000,  14.000000,  -0.670594,  -0.069642,   0$
 $$  End of generation of : Point to Point .1
 $$ OPERATION NAME : Post-Processor Instruction.2
 $$  Start generation of : Post-Processor Instruction.2
-SPINDLE/STOP
+SPINDL/OFF
 $$  End of generation of : Post-Processor Instruction.2
 $$ OPERATION NAME : Tool Change.2
 $$  Start generation of : Tool Change.2
@@ -79,10 +78,10 @@ $$ TOOLCHANGEEND
 $$  End of generation of : Tool Change.2
 $$ OPERATION NAME : Post-Processor Instruction.3
 $$  Start generation of : Post-Processor Instruction.3
-LOADTOOL/19,10
-SPINDLE/400CLW
-SPINDLE/900CCLW
-SPINDLE/10000CLW
+LOADTL/19,10
+SPINDL/400CLW
+SPINDL/900CCLW
+SPINDL/10000CLW
 
 $$  End of generation of : Post-Processor Instruction.3
 $$ OPERATION NAME : Isoparametric Machining.1
@@ -94,7 +93,7 @@ GOTO  /  21.359640,  30.456518,  -1.873680,   0.856457,  -0.502678,  -0$
 RAPID
 GOTO  /   4.230509,  40.510069,   0.475578,   0.856457,  -0.502678,  -0$
 .117463
-SHUI/ON
+COOLNT/ON
 LOOP/START,15
 FEDRAT/   10.0000,MMPM
 GOTO  /  -0.051773,  43.023456,   1.062892,   0.856457,  -0.502678,  -0$
@@ -416,14 +415,14 @@ GOTO  / -14.918577,  -9.069834,  -7.295360,   0.559762,  -0.709863,  -0$
 .427506
 LOOP/END
 INVERSE/OFF
-SHUI/OFF
+COOLNT/OFF
 FEDRAT/   20.0000,MMPM
 GOTO  / -12.119767, -12.619148,  -9.432889,   0.559762,  -0.709863,  -0$
 .427506
 $$  End of generation of : Isoparametric Machining.1
 $$ OPERATION NAME : Post-Processor Instruction.4
 $$  Start generation of : Post-Processor Instruction.4
-SPINDLE/STOP
+
 $$  End of generation of : Post-Processor Instruction.4
 SPINDL/OFF
 REWIND/0

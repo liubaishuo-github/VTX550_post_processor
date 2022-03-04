@@ -1,6 +1,5 @@
-from math import atan2, degrees
-
-
-a = degrees(atan2(1,3))
-
-print(a)
+import re
+str_1=r'$$ PERATION NAME : Tool Change.1'
+key = r'\$\$ PERATION NAME'
+nPos= re.match(key,str_1)
+print(nPos)

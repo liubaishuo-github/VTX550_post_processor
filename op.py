@@ -240,7 +240,7 @@ def INVERSE(apt_str):
         status_should_be['G93'] = 0
         status_should_be['G94'] = 1
     return 0, ''
-def LOADTOOL(apt_str):
+def LOADTL(apt_str):
     global tool_number, feedrate, status_g94_g93_stack, status_should_be, status_under_last, last_pch_point, last_apt_point, gl
     tool_number = re.search('(\d+)( *),( *)(\d+\.\d+|\d+|\.\d+)', apt_str).group(1)
     gl =    float(re.search('(\d+)( *),( *)(\d+\.\d+|\d+|\.\d+)', apt_str).group(4))
@@ -267,8 +267,8 @@ def LOADTOOL(apt_str):
         output_str.append(print_N_number() + i)
 
     return 2, output_str
-def SPINDLE(apt):
-    if re.search('STOP',apt):
+def SPINDL(apt):
+    if re.search('OFF',apt):
         a = 'M5'
         return 1, print_N_number() + a
 
@@ -280,9 +280,13 @@ def SPINDLE(apt):
 
     a = '{}S{}'.format(dir, rpm)
     return 1, print_N_number() + a
+
+def OPERATION_NAME(apt):
+    a = '(' + apt[apt.find(':') + 1 : ].strip() + ')'
+    return 1, a
 def STOP(apt):
     return 1, print_N_number() + 'M0'
-def SHUI(apt):
+def COOLNT(apt):
     if re.search('ON',apt):
         a = 'M20'
         return 1, '/2' + print_N_number() + a
@@ -334,19 +338,29 @@ def main(apt_txt):
     global pch_txt
     #print(';=====')
     #print(last_pch_point.angle.c)
-    ppword_list = ['GOTO', 'RAPID', 'INVERSE', 'FEDRAT', 'STOP',\
-                    'SPINDLE', 'LOADTOOL', 'SHUI', 'LOOP']
+    ppword_list = {
+                    'GOTO':'GOTO',
+                    'RAPID':'RAPID',
+                    'INVERSE':'INVERSE',
+                    'FEDRAT':'FEDRAT',
+                    'STOP':'STOP',
+                    'SPINDL':'SPINDL',
+                    'LOADTL':'LOADTL',
+                    'COOLNT':'COOLNT',
+                    'LOOP':'LOOP',
+                    '\$\$ OPERATION NAME :':'OPERATION_NAME'
+                    }
 
     add_program_head()
 
     for i in apt_txt:
-        for j in ppword_list:
-            ppword_match_object = re.match(j,i)
+        #print(i)
+        for key, value in ppword_list.items():
+            ppword_match_object = re.match(key,i)
             if ppword_match_object:
-                ppword = ppword_match_object.group()
                 #print("match success:" + i)
                 lc = locals()
-                exec('temp =' + ppword + '(i)')
+                exec('temp =' + value + '(i)')
                 temp = lc['temp']
                 #print(temp)
                 if temp[0] == 1:
@@ -357,8 +371,8 @@ def main(apt_txt):
 
     add_program_end()
 
-    for i in pch_txt:
-        print(i)
+    #for i in pch_txt:
+    #    print(i)
     return pch_txt
 
 #==================main==================================
