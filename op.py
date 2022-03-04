@@ -60,7 +60,7 @@ class Pch_point():
         if self.angle.b == last_pch_point.angle.b:
             b_str = ''
         else:
-            b_str = 'B' + str(self.angle.b)
+            b_str = 'A' + str(self.angle.b)
         if self.angle.c == last_pch_point.angle.c and self.angle.c != 0:
             c_str = ''
             '''This is to avoid the first point'C is just 0'''
@@ -136,6 +136,14 @@ def GOTO(apt_str):
                         [0, 0, 0, 1]
                                                     ])
             return t
+        def rot_z(de):
+            t = mat([
+                      [ cos(de), -sin(de), 0, 0],
+                      [ sin(de),  cos(de), 0, 0],
+                      [       0,        0, 1, 0],
+                      [0, 0, 0, 1]
+                                                  ])
+            return t
         def rot_x(de):
             t = mat([
                         [1, 0, 0, 0],
@@ -165,16 +173,15 @@ def GOTO(apt_str):
                                 apt_point.point.y + apt_point.normal.j * gl,\
                                 apt_point.point.z + apt_point.normal.k * gl,\
                                 1]).T
-        if apt_point.normal.j != 0 or apt_point.normal.k != 0:
-            c_pending1 = atan2(apt_point.normal.j, apt_point.normal.k)
+        if apt_point.normal.i != 0 or apt_point.normal.j != 0:
+            c_pending1 = atan2(-apt_point.normal.i, apt_point.normal.j)
         else:
             c_pending1 = radians(last_pch_point.angle.c)
-            print('caution,j,k = 0!')
-        b_pending1 = atan2(apt_point.normal.i,
-                            apt_point.normal.j * sin(c_pending1) + \
-                            apt_point.normal.k * cos(c_pending1))
+            print('caution,  i,j = 0  !!!!!')
+        b_pending1 = atan2(apt_point.normal.j, -apt_point.normal.k * cos(c_pending1))
+
         c_pending2 = c_pending1 + pi
-        b_pending2 = pi - b_pending1
+        b_pending2 = -b_pending1
         #print('for bug:',last_pch_point.angle.__dict__)
         #print('c_pending1=',c_pending1)
         #print('c_pending2=',c_pending2)
@@ -182,7 +189,7 @@ def GOTO(apt_str):
             c, b = nearest_c(c_pending1), b_pending1
         else:
             c, b = nearest_c(c_pending2), b_pending2
-        pch_xyz = translation_z(-37.3964) * rot_y(-b) * rot_x(c) *translation_x(3) * apt_plus_gl_point
+        pch_xyz = translation_z(-17.7156) * rot_x(-b) * translation_z(-100/25.4) * rot_z(-c) * apt_plus_gl_point
         x, y, z = pch_xyz[0,0], pch_xyz[1,0], pch_xyz[2,0]
         return round(x,4), round(y,4), round(z,4), round(degrees(b),3), round(degrees(c),3)
 
@@ -244,7 +251,7 @@ def LOADTOOL(apt_str):
     last_pch_point = Pch_point()
     last_apt_point = Apt_point()
 
-    loadtool_head1 = ['G0G49Z0', 'M5', '(******************************)',\
+    loadtool_head1 = ['G0G49Z0', 'M9', 'M5', 'G53G49Z0.', 'G54.3P0','G92.1X0.Y0.Z0.A0.C0.', '(******************************)',\
                     '(LOAD TOOL #{} , GL={} )'.format(tool_number, gl),\
                     '(******************************)', 'M1']
     output_str =[]
@@ -255,7 +262,9 @@ def LOADTOOL(apt_str):
     n_number = int(re.search('\d+', n_number_of_if).group())
     output_str.append(n_number_of_if + 'IF[#599EQ{}]GOTO{} (RESTART)'.format(tool_number, str(n_number +3)))
 
-    output_str.extend([print_N_number() + 'T' + tool_number, print_N_number() + 'M6'])
+    loadtool_end1 = ['T' + tool_number, 'M6', 'G53G49Z0.', 'G54.3P0','G92.1X0.Y0.Z0.A0.C0.', 'G90G54', 'G54.3P1']
+    for i in loadtool_end1:
+        output_str.append(print_N_number() + i)
 
     return 2, output_str
 def SPINDLE(apt):
@@ -309,13 +318,13 @@ def LOOP(apt):
 
 def add_program_head():
     global pch_txt
-    program_head = ['G90G20G17G54G64', 'M25', '#5205=0']
+    program_head = ['G90G20G17G54G64', 'M25', 'M5', 'M9', '#5205=0', '#5=0', '#580=0.1']
     for i in program_head:
         pch_txt.append(i)
 
 def add_program_end():
     global pch_txt
-    program_end = ['M9', 'M5', 'G0G90G49Z.0', 'X.0Y.0Z.0B.0C.0', 'T0', 'M6', 'M26', 'M30']
+    program_end = ['M9', 'M5', 'G0G90G49Z.0', 'X.0Y.0Z.0A.0C.0', 'G54.3P0', 'T0', 'M6', 'M26', 'M30']
     for i in program_end:
         pch_txt.append(print_N_number() + i)
     pch_txt.append('%')
