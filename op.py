@@ -65,7 +65,7 @@ class Pch_point():
             c_str = ''
             '''This is to avoid the first point'C is just 0'''
         else:
-            c_str = 'C' + str(self.angle.c)
+            c_str = 'C[' + str(self.angle.c) + '+#5]'
         return x_str + y_str + z_str + b_str + c_str
     def print_g_code(self):
         global status_under_last
@@ -302,16 +302,16 @@ def LOOP(apt):
                     '#575={} (#575 is total loop number)'.format(loop_number_stack.pop()),\
                     '#576=0 (#576 is initial number)',\
                     '#577=#576+1 (#577 is current loop number)', \
-                    '#5205=0 (#5205 is C axis external)']
+                    '#5=0']
         temp = print_N_number() + 'M1'
         loop_N_number_stack.append(re.search('\d+', temp).group())
         start_words.append(temp)
-        start_words.append(print_N_number() + 'C' + str(last_pch_point.angle.c))
+        start_words.append(print_N_number() + 'C[' + str(last_pch_point.angle.c) + '+#5]')
         return 2, start_words
 
     if re.search('END', apt):
-        temp = print_N_number() + '#5205=0'
-        end_words = ['#5205=#577*360/{}'.format(loop_number_stack.pop()),\
+        temp = print_N_number() + '#5=0'
+        end_words = ['#5=#577*360/{}'.format(loop_number_stack.pop()),\
                     'IF[#575LE#577]GOTO{}'.format(re.search('\d+', temp).group()),\
                     '#577=#577+1', 'GOTO{}'.format(loop_N_number_stack.pop())]
         end_words.append(temp)
