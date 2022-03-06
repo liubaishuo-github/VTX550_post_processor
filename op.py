@@ -84,6 +84,19 @@ class Pch_point():
 
         return g_code_str, f_h_str
 
+class Cutting_Tool():
+    def __init__(self, pocket, data_number):
+        with open(r'C:\Users\asus\Desktop\aaa.txt', encoding='utf-8-sig') as file:
+            lines = file.readlines()
+            for i in lines:
+                if re.match(data_number, i.strip()):
+                    data = i.strip().split(',')
+        self.pocket = pocket
+        self.gauge_length = float(data[9])
+        self.radius = data[6]
+        self.code = data[2]
+        self.name = data[4]
+
 def updata_g_code_status():
     def clear_status(if_one, to_be_zero):
         global status_under_last
@@ -242,8 +255,8 @@ def INVERSE(apt_str):
     return 0, ''
 def LOADTL(apt_str):
     global tool_number, feedrate, status_g94_g93_stack, status_should_be, status_under_last, last_pch_point, last_apt_point, gl
-    tool_number = re.search('(\d+)( *),( *)(\d+\.\d+|\d+|\.\d+)', apt_str).group(1)
-    gl =    float(re.search('(\d+)( *),( *)(\d+\.\d+|\d+|\.\d+)', apt_str).group(4))
+    tool_number = re.search('\d+', apt_str).group()
+    gl = cutting_tool_collection[tool_number].gauge_length
     feedrate = -999
     status_g94_g93_stack = []
     status_should_be =  {'G90':1, 'G54':1, 'G0':0, 'G1':1, 'G43':1, 'G94':1, 'G93':0, 'F':0, 'H':1}
@@ -280,7 +293,12 @@ def SPINDL(apt):
 
     a = '{}S{}'.format(dir, rpm)
     return 1, print_N_number() + a
-
+def TOOLNO(apt):
+    global cutting_tool_collection
+    tool_pocket = re.search('\d+', apt[:apt.find(',')]).group()
+    tool_data_number = re.search('\d+\.?\d+', apt[apt.find(',')+1 :]).group()
+    tool_instance = Cutting_Tool(tool_pocket, tool_data_number)
+    cutting_tool_collection[tool_pocket] = tool_instance
 def OPERATION_NAME(apt):
     a = '(' + apt[apt.find(':') + 1 : ].strip() + ')'
     return 1, a
@@ -348,7 +366,8 @@ def main(apt_txt):
                     'LOADTL':'LOADTL',
                     'COOLNT':'COOLNT',
                     'LOOP':'LOOP',
-                    '\$\$ OPERATION NAME :':'OPERATION_NAME'
+                    '\$\$ OPERATION NAME :':'OPERATION_NAME',
+                    'TOOLNO':'TOOLNO',
                     }
 
     add_program_head()
@@ -379,5 +398,6 @@ def main(apt_txt):
 pch_txt = []
 loop_N_number_stack = []
 loop_number_stack = []
+cutting_tool_collection = {}
 last_pch_point = Pch_point()
 last_apt_point = Apt_point()
