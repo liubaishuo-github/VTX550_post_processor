@@ -298,6 +298,16 @@ def SPINDL(apt):
 
     a = '{}S{}'.format(dir, rpm)
     return 1, print_N_number() + a
+def AICC(apt):
+    if re.search('OFF',apt):
+        a = 'G05.1Q0'
+        return 1, a
+    if re.search('\d+', apt):
+        level = re.search('\d+', apt).group()
+    else:
+        level = '1'
+    a = 'G05.1Q1R{}'.format(level)
+    return 1, a
 def TOOLNO(apt):
     global cutting_tool_collection
     tool_pocket = re.search('\d+', apt[:apt.find(',')]).group()
@@ -375,6 +385,7 @@ def main(apt_txt):
                     'LOOP':'LOOP',
                     '\$\$ OPERATION NAME :':'OPERATION_NAME',
                     'TOOLNO':'TOOLNO',
+                    'AICC':'AICC',
                     }
 
     add_program_head()
