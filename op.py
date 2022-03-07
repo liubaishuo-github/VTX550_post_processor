@@ -86,16 +86,18 @@ class Pch_point():
 
 class Cutting_Tool():
     def __init__(self, pocket, data_number):
-        with open(r'C:\Users\asus\Desktop\aaa.txt', encoding='utf-8-sig') as file:
+        with open(r'G:\IMSpost\Tooldata\SPWAEC_HU63A', encoding='utf-8-sig') as file:
             lines = file.readlines()
             for i in lines:
                 if re.match(data_number, i.strip()):
                     data = i.strip().split(',')
+                    break
+        #print(data)
         self.pocket = pocket
-        self.gauge_length = float(data[9])
-        self.radius = data[6]
-        self.code = data[2]
-        self.name = data[4]
+        self.gauge_length = float(data[6].strip())
+        self.radius = data[9].strip()
+        self.code = data[2].strip()
+        self.name = data[5].strip()
 
 def updata_g_code_status():
     def clear_status(if_one, to_be_zero):
@@ -264,12 +266,15 @@ def LOADTL(apt_str):
     last_pch_point = Pch_point()
     last_apt_point = Apt_point()
 
-    loadtool_head1 = ['G0G49Z0', 'M9', 'M5', 'G53G49Z0.', 'G54.3P0','G92.1X0.Y0.Z0.A0.C0.', '(******************************)',\
-                    '(LOAD TOOL #{} , GL={} )'.format(tool_number, gl),\
-                    '(******************************)', 'M1']
+    loadtool_head1 = ['G0G49Z0', 'M9', 'M5', 'G53G49Z0.', 'G54.3P0','G92.1X0.Y0.Z0.A0.C0.',
+                    '(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *)',
+                    '(LOAD TOOL NO: {}   {} )'.format(tool_number, cutting_tool_collection[tool_number].code),
+                    '(TOOL GL: {}   TOOL RADIUS: {} )'.format(gl, cutting_tool_collection[tool_number].radius),
+                    '(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *)',
+                    'M1']
     output_str =[]
     for i in loadtool_head1:
-        output_str.append(print_N_number() + i)
+        output_str.append(i)
 
     n_number_of_if = print_N_number()
     n_number = int(re.search('\d+', n_number_of_if).group())
@@ -296,9 +301,11 @@ def SPINDL(apt):
 def TOOLNO(apt):
     global cutting_tool_collection
     tool_pocket = re.search('\d+', apt[:apt.find(',')]).group()
-    tool_data_number = re.search('\d+\.?\d+', apt[apt.find(',')+1 :]).group()
+    #print(apt)
+    tool_data_number = re.search('(\d+\.?\d+|\d+)', apt[apt.find(',')+1 :]).group()
     tool_instance = Cutting_Tool(tool_pocket, tool_data_number)
     cutting_tool_collection[tool_pocket] = tool_instance
+    return 0, 0
 def OPERATION_NAME(apt):
     a = '(' + apt[apt.find(':') + 1 : ].strip() + ')'
     return 1, a

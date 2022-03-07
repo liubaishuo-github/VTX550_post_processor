@@ -12,6 +12,9 @@ $$     0.00000     0.00000     1.00000     0.00000
 PARTNO PART TO BE MACHINED
 COOLNT/ON
 CUTCOM/OFF
+TOOLNO/13,1
+TOOLNO/19,269
+TOOLNO/3,14
 $$ OPERATION NAME : Tool Change.1
 $$  Start generation of : Tool Change.1
 MULTAX
@@ -25,7 +28,7 @@ $$ TOOLCHANGEEND
 $$  End of generation of : Tool Change.1
 $$ OPERATION NAME : Post-Processor Instruction.1
 $$  Start generation of : Post-Processor Instruction.1
-LOADTL/13,12.5
+LOADTL/13
 SPINDL/400,CLW
 SPINDL/900CCLW
 SPINDL/10000,CLW
@@ -78,7 +81,7 @@ $$ TOOLCHANGEEND
 $$  End of generation of : Tool Change.2
 $$ OPERATION NAME : Post-Processor Instruction.3
 $$  Start generation of : Post-Processor Instruction.3
-LOADTL/19,10
+LOADTL/19
 SPINDL/400CLW
 SPINDL/900CCLW
 SPINDL/10000CLW
@@ -86,7 +89,7 @@ SPINDL/10000CLW
 $$  End of generation of : Post-Processor Instruction.3
 $$ OPERATION NAME : Isoparametric Machining.1
 $$  Start generation of : Isoparametric Machining.1
-LOADTL/3,1
+LOADTL/3
 RAPID
 GOTO  /  21.359640,  30.456518,  -1.873680,   0.856457,  -0.502678,  -0$
 .117463
