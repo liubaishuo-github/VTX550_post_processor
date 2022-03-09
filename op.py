@@ -85,19 +85,24 @@ class Pch_point():
         return g_code_str, f_h_str
 
 class Cutting_Tool():
-    def __init__(self, pocket, data_number):
+    def __init__(self, pocket, lib_number):
         with open(r'G:\IMSpost\Tooldata\SPWAEC_HU63A', encoding='utf-8-sig') as file:
             lines = file.readlines()
             for i in lines:
-                if re.match(data_number, i.strip()):
+                if re.match(lib_number, i.strip()):
                     data = i.strip().split(',')
                     break
-        #print(data)
         self.pocket = pocket
+        self.lib_number = lib_number
+        self.assembly = data[1].strip()
+        self.cutter = data[2].strip()
+        self.holder = data[3].strip()
+        self.adapter = data[4].strip()
+        self.description = data[5].strip()
         self.gauge_length = float(data[6].strip())
+        self.clearance = data[7].strip()
+        self.diameter = data[8].strip()
         self.radius = data[9].strip()
-        self.code = data[2].strip()
-        self.name = data[5].strip()
 
 def updata_g_code_status():
     def clear_status(if_one, to_be_zero):
@@ -268,7 +273,7 @@ def LOADTL(apt_str):
 
     loadtool_head1 = ['G0G49Z0', 'M9', 'M5', 'G53G49Z0.', 'G54.3P0','G92.1X0.Y0.Z0.A0.C0.',
                     '(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *)',
-                    '(LOAD TOOL NO: {}   {} )'.format(tool_number, cutting_tool_collection[tool_number].code),
+                    '(LOAD TOOL NO: {}   {} )'.format(tool_number, cutting_tool_collection[tool_number].cutter),
                     '(TOOL GL: {}   TOOL RADIUS: {} )'.format(gl, cutting_tool_collection[tool_number].radius),
                     '(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *)',
                     'M1']
@@ -312,8 +317,8 @@ def TOOLNO(apt):
     global cutting_tool_collection
     tool_pocket = re.search('\d+', apt[:apt.find(',')]).group()
     #print(apt)
-    tool_data_number = re.search('(\d+\.?\d+|\d+)', apt[apt.find(',')+1 :]).group()
-    tool_instance = Cutting_Tool(tool_pocket, tool_data_number)
+    tool_lib_number = re.search('(\d+\.?\d+|\d+)', apt[apt.find(',')+1 :]).group()
+    tool_instance = Cutting_Tool(tool_pocket, tool_lib_number)
     cutting_tool_collection[tool_pocket] = tool_instance
     return 0, 0
 def OPERATION_NAME(apt):
