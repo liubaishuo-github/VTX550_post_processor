@@ -8,7 +8,7 @@ status_should_be =  {'G90':1, 'G54':1, 'G0':0, 'G1':1, 'G43':1, 'G94':1, 'G93':0
 status_under_last = {'G90':0, 'G54':0, 'G0':0, 'G1':0, 'G43':0, 'G94':0, 'G93':0, 'F':0, 'H':0}
 
 
-import re, copy, math
+import re, copy, math, os
 
 class Point():
     def __init__(self):
@@ -23,11 +23,16 @@ class Apt_point():
     def __init__(self):
         self.point = Point()
         self.normal = Normal()
+        self.ball_center_point = Point()
     def extract_point_and_normal(self, apt_txt):
         temp = re.findall('-?\d+\.\d+', apt_txt)
         self.point.x, self.point.y, self.point.z, \
             self.normal.i, self.normal.j, self.normal.k= \
             list(map(float,temp))
+        self.ball_center_point.x = self.point.x + float(cutting_tool_collection[tool_number].radius) * self.normal.i
+        self.ball_center_point.y = self.point.y + float(cutting_tool_collection[tool_number].radius) * self.normal.j
+        self.ball_center_point.z = self.point.z + float(cutting_tool_collection[tool_number].radius) * self.normal.k
+
 class Pch_point():
     def __init__(self):
         self.point = Point()
@@ -86,7 +91,8 @@ class Pch_point():
 
 class Cutting_Tool():
     def __init__(self, pocket, lib_number):
-        with open(r'G:\IMSpost\Tooldata\SPWAEC_HU63A', encoding='utf-8-sig') as file:
+        dir = os.getcwd()
+        with open(rf'{dir}\SPWAEC_HU63A', encoding='utf-8-sig') as file:
             lines = file.readlines()
             for i in lines:
                 if re.match(lib_number, i.strip()):
@@ -320,7 +326,16 @@ def TOOLNO(apt):
     tool_lib_number = re.search('(\d+\.?\d+|\d+)', apt[apt.find(',')+1 :]).group()
     tool_instance = Cutting_Tool(tool_pocket, tool_lib_number)
     cutting_tool_collection[tool_pocket] = tool_instance
-    return 0, 0
+    tool_description = [
+                        '(---------------------------------------------------------)',
+                        '(POCKET #:{}'.format(tool_pocket).ljust(58) + ')',
+                        '({}  {}  GL:{}   C/L:{}  RADIUS:{}'.format(tool_instance.cutter, tool_instance.description, tool_instance.gauge_length, tool_instance.clearance, tool_instance.radius).ljust(58) + ')',
+                        '(ASSEMBLY:{}'.format(tool_instance.assembly).ljust(58) + ')',
+                        '(HOLDER:{}'.format(tool_instance.holder).ljust(58) + ')',
+                        '(ADAPTER:{}'.format(tool_instance.adapter).ljust(58) + ')',
+                        '(---------------------------------------------------------)',
+                        ]
+    return 2, tool_description
 def OPERATION_NAME(apt):
     a = '(' + apt[apt.find(':') + 1 : ].strip() + ')'
     return 1, a
