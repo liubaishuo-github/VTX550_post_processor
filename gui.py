@@ -1,13 +1,15 @@
 import tkinter as tk
 from tkinter.filedialog import askopenfile, asksaveasfilename
-import os, main
+from tkinter import messagebox
+import os, main, traceback
 
 
 def select_apt_path():
     path_ = askopenfile()
     if path_:
         apt_path.set(path_.name.replace('/', '\\'))
-        pch_default_path = r'D:\liubaishuo\liubs\macros\VTX550_post_processor' +'\\'
+        #pch_default_path = r'D:\liubaishuo\liubs\macros\VTX550_post_processor' +'\\'
+        pch_default_path = r'E:\工作\macro\VTX550_post_processor' +'\\'
 
         pch_path.set(pch_default_path + apt_path.get()[apt_path.get().rfind('\\') + 1 : apt_path.get().rfind('.')] + '.pch')
         #print(path.get())
@@ -22,8 +24,14 @@ def select_pch_path():
 
 
 def exec_main(apt_file_path, pch_file_path):
-    main.main(apt_file_path, pch_file_path)
-    print('Done!')
+    try:
+        main.main(apt_file_path, pch_file_path)
+        messagebox.showinfo(title='Message', message='Done!')
+    except Exception as e:
+        messagebox.showinfo(title='Warning', message=e, icon='error')
+        messagebox.showinfo(title='Warning', message=traceback.format_exc(), icon='error')
+        raise
+
 
 
 
