@@ -1,35 +1,41 @@
-
-
-
-
-
-
-
-
-'''
-===========================main==============================
-===========================main==============================
-===========================main==============================
-'''
 import read_apt_file, op
-import datetime
+import datetime, re, os
 
-apt_txt = read_apt_file.txt_temp
+def main(apt_file_path, pch_file_path):
+    #print('apt_file_path in main:', apt_file_path)
+    temp = read_apt_file.main(apt_file_path)
+    apt_txt = temp[0]
+    cvz_number = temp[1]
 
-pch_txt = op.main(apt_txt)
 
-program_number = read_apt_file.apt_filename
-filename_out = 'CVZ' + program_number + '.pch'
-
-pch_txt.insert(0, 'O' + program_number[-4:])
-pch_txt.insert(0, '%')
-dt = datetime.datetime.now()
-time_str = '(CVZ{}  '.format(program_number) + dt.strftime('%a  %b-%d-%Y  %H:%M:%S') + ')'
-pch_txt.insert(2, time_str)
+    pch_txt = op.main(apt_txt)
 
 
 
-file_out = open(filename_out, mode='w', encoding='utf-8')
-for i in pch_txt:
-    file_out.write(i + '\n')
-file_out.close
+
+    pch_txt.insert(0, 'O1' + cvz_number[-3:])
+    pch_txt.insert(0, '%')
+    dt = datetime.datetime.now()
+    time_str = '(CVZ{}  '.format(cvz_number) + dt.strftime('%a  %b-%d-%Y  %H:%M:%S') + ')'
+    pch_txt.insert(2, time_str)
+
+
+
+    with open(pch_file_path, mode='w', encoding='utf-8') as file_out:
+        for i in pch_txt:
+            file_out.write(i + '\n')
+
+
+
+
+if __name__ == '__main__':
+    print('==========================')
+    print('VTX550 post processor.')
+    print('--------------------------')
+    apt_filename = re.search('\d+', input("Input the apt file #:").strip()).group()
+
+    dir = os.getcwd()
+
+    apt_file_path = rf"{dir}\\CVZ{apt_filename}.aptsource"
+
+    main(apt_file_path)

@@ -1,3 +1,5 @@
+import os, re
+
 def txt_connect(txt_before):
     #connect the lines divided by $, and put into txt
     txt = []
@@ -14,20 +16,17 @@ def txt_connect(txt_before):
     return txt
 
 
-import os, re
+def main(apt_file_path):
 
-print('==========================')
-print('VTX550 post processor.')
-print('--------------------------')
-apt_filename = re.search('\d+', input("Input the apt file #:").strip()).group()
+    cvz_number = re.search('\d+', apt_file_path[apt_file_path.rfind('\\'):]).group()
 
-dir = os.getcwd()
+    dir = os.getcwd()
 
-filename = rf"{dir}\\CVZ{apt_filename}.aptsource"
+    with open(apt_file_path, encoding='utf-8-sig') as file:
+        txt_temp = file.readlines()
 
-file = open(filename, encoding='utf-8-sig')
-txt_temp = file.readlines()
-file.close
 
-txt_temp = txt_connect(txt_temp)
+    txt_temp = txt_connect(txt_temp)
+
+    return txt_temp, cvz_number
 #print(txt_temp)

@@ -1,13 +1,3 @@
-#global block_number, gl, last_pch_point, last_apt_point, feedrate
-block_number = 0
-gl = 9.999
-tool_number = 0
-feedrate = -999
-status_g94_g93_stack = []
-status_should_be =  {'G90':1, 'G54':1, 'G0':0, 'G1':1, 'G43':1, 'G94':1, 'G93':0, 'F':0, 'H':1}
-status_under_last = {'G90':0, 'G54':0, 'G0':0, 'G1':0, 'G43':0, 'G94':0, 'G93':0, 'F':0, 'H':0}
-
-
 import re, copy, math, os
 
 class Point():
@@ -109,6 +99,12 @@ class Cutting_Tool():
         self.clearance = data[7].strip()
         self.diameter = data[8].strip()
         self.radius = data[9].strip()
+
+def initial_g_code_status():
+    global status_should_be, status_under_last
+
+    status_should_be =  {'G90':1, 'G54':1, 'G0':0, 'G1':1, 'G43':1, 'G94':1, 'G93':0, 'F':0, 'H':1}
+    status_under_last = {'G90':0, 'G54':0, 'G0':0, 'G1':0, 'G43':0, 'G94':0, 'G93':0, 'F':0, 'H':0}
 
 def updata_g_code_status():
     def clear_status(if_one, to_be_zero):
@@ -267,13 +263,13 @@ def INVERSE(apt_str):
         status_should_be['G94'] = 1
     return 0, ''
 def LOADTL(apt_str):
-    global tool_number, feedrate, status_g94_g93_stack, status_should_be, status_under_last, last_pch_point, last_apt_point, gl
+    global tool_number, feedrate, status_g94_g93_stack, last_pch_point, last_apt_point, gl
     tool_number = re.search('\d+', apt_str).group()
     gl = cutting_tool_collection[tool_number].gauge_length
     feedrate = -999
     status_g94_g93_stack = []
-    status_should_be =  {'G90':1, 'G54':1, 'G0':0, 'G1':1, 'G43':1, 'G94':1, 'G93':0, 'F':0, 'H':1}
-    status_under_last = {'G90':0, 'G54':0, 'G0':0, 'G1':0, 'G43':0, 'G94':0, 'G93':0, 'F':0, 'H':0}
+    initial_g_code_status()
+
     last_pch_point = Pch_point()
     last_apt_point = Apt_point()
 
@@ -390,9 +386,25 @@ def add_program_end():
 
 
 def main(apt_txt):
-    global pch_txt
+    global pch_txt, loop_N_number_stack, loop_number_stack, cutting_tool_collection, last_pch_point, last_apt_point
+    global block_number, gl, tool_number, feedrate, status_g94_g93_stack
     #print(';=====')
     #print(last_pch_point.angle.c)
+    pch_txt = []
+    loop_N_number_stack = []
+    loop_number_stack = []
+    cutting_tool_collection = {}
+    last_pch_point = Pch_point()
+    last_apt_point = Apt_point()
+
+    block_number = 0
+    gl = 9.999
+    tool_number = 0
+    feedrate = -999
+    status_g94_g93_stack = []
+
+    initial_g_code_status()
+
     ppword_list = {
                     'GOTO':'GOTO',
                     'RAPID':'RAPID',
@@ -431,11 +443,3 @@ def main(apt_txt):
     #for i in pch_txt:
     #    print(i)
     return pch_txt
-
-#==================main==================================
-pch_txt = []
-loop_N_number_stack = []
-loop_number_stack = []
-cutting_tool_collection = {}
-last_pch_point = Pch_point()
-last_apt_point = Apt_point()

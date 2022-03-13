@@ -1,8 +1,10 @@
-import re
+def a():
+    global ss
+    print(ss)
 
-apt = 'AICC/ON,10'
-if re.search('\d+', apt):
-    level = re.search('\d+', apt).group()
-else:
-    level = '1'
-print(level)
+def b():
+    ss = 30
+    a()
+
+
+b()
