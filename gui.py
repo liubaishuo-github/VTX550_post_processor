@@ -8,8 +8,15 @@ def select_apt_path():
     path_ = askopenfile()
     if path_:
         apt_path.set(path_.name.replace('/', '\\'))
-        #pch_default_path = r'D:\liubaishuo\liubs\macros\VTX550_post_processor' +'\\'
-        pch_default_path = r'E:\工作\macro\VTX550_post_processor' +'\\'
+
+        pch_default_path = r'G:\NC_POSTING_DATA\OUTPUT_DATA\CRITICAL\TEMP' +'\\'
+        if os.path.exists(pch_default_path):
+            pass
+        else:
+            #pch_default_path = r'D:\liubaishuo\liubs\macros\VTX550_post_processor' +'\\'
+            pch_default_path = r'E:\工作\macro\VTX550_post_processor' +'\\'
+
+
 
         pch_path.set(pch_default_path + apt_path.get()[apt_path.get().rfind('\\') + 1 : apt_path.get().rfind('.')] + '.pch')
         #print(path.get())

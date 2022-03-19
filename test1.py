@@ -1,10 +1,10 @@
-def a():
-    global ss
-    print(ss)
-
-def b():
-    ss = 30
-    a()
+import os
 
 
-b()
+
+pch_default_path = r'G:\NC_POSTING_DATA\OUTPUT_DATA\CRITICAL\TEMP'
+
+if os.path.exists(pch_default_path):
+    print('yes')
+else:
+    print('no')
