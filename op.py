@@ -8,7 +8,7 @@ class Normal():
         self.i, self.j, self.k = 0.0, 0.0, 0.0
 class Angle():
     def __init__(self):
-        self.b, self.c = 9999.0, 0.0
+        self.b, self.c = 9999.0, initial_c
 class Apt_point():
     def __init__(self):
         self.point = Point()
@@ -56,9 +56,8 @@ class Pch_point():
             b_str = ''
         else:
             b_str = 'A' + str(self.angle.b)
-        if self.angle.c == last_pch_point.angle.c and self.angle.c != 0:
+        if self.angle.c == last_pch_point.angle.c:
             c_str = ''
-            '''This is to avoid the first point'C is just 0'''
         else:
             c_str = 'C[' + str(self.angle.c) + '+#5]'
         return x_str + y_str + z_str + b_str + c_str
@@ -81,8 +80,11 @@ class Pch_point():
 
 class Cutting_Tool():
     def __init__(self, pocket, lib_number):
-        dir = os.getcwd()
-        with open(rf'{dir}\SPWAEC_HU63A', encoding='utf-8-sig') as file:
+        dir = r'G:\IMSpost\Tooldata\SPWAEC_VTX550'
+        if not(os.path.exists(dir)):
+            print('!! Tooldata not exist !!')
+            dir = os.getcwd()
+        with open(rf'{dir}\SPWAEC_VTX550', encoding='utf-8-sig') as file:
             lines = file.readlines()
             for i in lines:
                 if re.match(lib_number, i.strip()):
@@ -103,8 +105,8 @@ class Cutting_Tool():
 def initial_g_code_status():
     global status_should_be, status_under_last
 
-    status_should_be =  {'G90':1, 'G54':1, 'G0':0, 'G1':1, 'G43':1, 'G94':1, 'G93':0, 'F':0, 'H':1}
-    status_under_last = {'G90':0, 'G54':0, 'G0':0, 'G1':0, 'G43':0, 'G94':0, 'G93':0, 'F':0, 'H':0}
+    status_should_be =  {'G90':1, 'G54':1, 'G0':0, 'G1':0, 'G43':1, 'G94':1, 'G93':0, 'F':0, 'H':1}
+    status_under_last = {'G90':0, 'G54':0, 'G0':1, 'G1':0, 'G43':0, 'G94':0, 'G93':0, 'F':0, 'H':0}
 
 def updata_g_code_status():
     def clear_status(if_one, to_be_zero):
@@ -117,8 +119,7 @@ def updata_g_code_status():
     clear_status('G94', 'G93')
     status_should_be['G0'] = 0
     status_should_be['G1'] = 1
-    #if status_g94_g93_stack != []:
-    #    status_should_be[status_g94_g93_stack.pop()] = 1
+
     if status_should_be['G93'] ==1:
         status_should_be['F'] = 1
 
@@ -198,8 +199,13 @@ def GOTO(apt_str):
         if apt_point.normal.i != 0 or apt_point.normal.j != 0:
             c_pending1 = atan2(-apt_point.normal.i, apt_point.normal.j)
         else:
-            c_pending1 = radians(last_pch_point.angle.c)
-            print('caution,  i,j = 0  !!!!!')
+            print('caution,j,k = 0!')
+            if last_pch_point.angle.c == initial_c:
+                last_pch_point.angle.c = 0.
+                c_pending1 = radians(last_pch_point.angle.c)
+            else:
+                c_pending1 = radians(last_pch_point.angle.c)
+
         b_pending1 = atan2(apt_point.normal.j, -apt_point.normal.k * cos(c_pending1))
 
         c_pending2 = c_pending1 + pi
@@ -211,7 +217,7 @@ def GOTO(apt_str):
             c, b = nearest_c(c_pending1), b_pending1
         else:
             c, b = nearest_c(c_pending2), b_pending2
-        pch_xyz = translation_z(-17.7156) * rot_x(-b) * translation_z(-100/25.4) * rot_z(-c) * apt_plus_gl_point
+        pch_xyz = translation_z(-450/25.4) * rot_x(-b) * translation_z(-100/25.4) * rot_z(-c) * apt_plus_gl_point
         x, y, z = pch_xyz[0,0], pch_xyz[1,0], pch_xyz[2,0]
         return round(x,4), round(y,4), round(z,4), round(degrees(b),3), round(degrees(c),3)
 
@@ -237,21 +243,15 @@ def FEDRAT(apt_str):
     global feedrate, status_should_be, status_under_last
     feedrate = round(float(re.findall('\d+\.\d+', apt_str)[0]),3)
     status_should_be['F'] = 1
+    status_under_last['F'] = 0
     status_should_be['G1'] = 1
     status_should_be['G0'] = 0
-    status_under_last['F'] = 0
     return 0, ''
 def RAPID(apt_str):
-    global status_should_be, status_g94_g93_stack
+    global status_should_be
     status_should_be['F'] = 0
     status_should_be['G0'] = 1
     status_should_be['G1'] = 0
-    if status_should_be['G93'] == 1:
-        status_g94_g93_stack.append('G93')
-    elif status_should_be['G94'] == 1:
-        status_g94_g93_stack.append('G94')
-    #status_should_be['G93'] = 0
-    #status_should_be['G94'] = 0
     return 0, ''
 def INVERSE(apt_str):
     global status_should_be
@@ -263,17 +263,16 @@ def INVERSE(apt_str):
         status_should_be['G94'] = 1
     return 0, ''
 def LOADTL(apt_str):
-    global tool_number, feedrate, status_g94_g93_stack, last_pch_point, last_apt_point, gl
+    global tool_number, feedrate, last_pch_point, last_apt_point, gl
     tool_number = re.search('\d+', apt_str).group()
     gl = cutting_tool_collection[tool_number].gauge_length
     feedrate = -999
-    status_g94_g93_stack = []
     initial_g_code_status()
 
     last_pch_point = Pch_point()
     last_apt_point = Apt_point()
 
-    loadtool_head1 = ['G0G49Z0', 'M9', 'M5', 'G53G49Z0.', 'G54.3P0','G92.1X0.Y0.Z0.A0.C0.',
+    loadtool_head1 = ['G53G0G49Z0.', 'M9', 'M5', 'G54.3P0','G92.1X0.Y0.Z0.A0.C0.',
                     '(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *)',
                     '(LOAD TOOL NO: {}   {} )'.format(tool_number, cutting_tool_collection[tool_number].cutter),
                     '(TOOL GL: {}   TOOL RADIUS: {} )'.format(gl, cutting_tool_collection[tool_number].radius),
@@ -287,7 +286,13 @@ def LOADTL(apt_str):
     n_number = int(re.search('\d+', n_number_of_if).group())
     output_str.append(n_number_of_if + 'IF[#599EQ{}]GOTO{} (RESTART)'.format(tool_number, str(n_number +3)))
 
-    loadtool_end1 = ['T' + tool_number, 'M6', 'G53G49Z0.', 'G54.3P0','G92.1X0.Y0.Z0.A0.C0.', 'G90G54', 'G54.3P1']
+    loadtool_end1 = ['T' + tool_number,
+					 'M6', 'G53G49Z0.',
+					 'G54.3P0',
+					 'G92.1X0.Y0.Z0.A0.C0.',
+					 'G90G54G0C' + str(initial_c),
+					 'G54.3P1',
+					 ]
     for i in loadtool_end1:
         output_str.append(print_N_number() + i)
 
@@ -324,7 +329,7 @@ def TOOLNO(apt):
     cutting_tool_collection[tool_pocket] = tool_instance
     tool_description = [
                         '(---------------------------------------------------------)',
-                        '(POCKET #:{}'.format(tool_pocket).ljust(58) + ')',
+                        '(POCKET #:{}                                  LIB#:{}'.format(tool_pocket, tool_lib_number).ljust(58) + ')',
                         '({}  {}  GL:{}   C/L:{}  RADIUS:{}'.format(tool_instance.cutter, tool_instance.description, tool_instance.gauge_length, tool_instance.clearance, tool_instance.radius).ljust(58) + ')',
                         '(ASSEMBLY:{}'.format(tool_instance.assembly).ljust(58) + ')',
                         '(HOLDER:{}'.format(tool_instance.holder).ljust(58) + ')',
@@ -333,7 +338,10 @@ def TOOLNO(apt):
                         ]
     return 2, tool_description
 def OPERATION_NAME(apt):
-    a = '(' + apt[apt.find(':') + 1 : ].strip() + ')'
+    temp = apt[apt.find(':') + 1 : ].strip()
+    temp.replace('(', '')
+    temp.replace(')', '')
+    a = '(' + temp + ')'
     return 1, a
 def STOP(apt):
     return 1, print_N_number() + 'M0'
@@ -373,13 +381,13 @@ def LOOP(apt):
 
 def add_program_head():
     global pch_txt
-    program_head = ['G90G20G17G54G64', 'M25', 'M5', 'M9', '#5205=0', '#5=0', '#580=0.1']
+    program_head = ['G90G20G17G54G64', 'G80', 'G40', 'M25', 'M5', 'M9', '#5205=0', '#5=0', '#580=0.1']
     for i in program_head:
         pch_txt.append(i)
 
 def add_program_end():
     global pch_txt
-    program_end = ['M9', 'M5', 'G0G90G49Z.0', 'X.0Y.0Z.0A.0C.0', 'G54.3P0', 'T0', 'M6', 'M26', 'M30']
+    program_end = ['M9', 'M5', 'G0G90G53G49Z.0', 'G80G40', 'X.0Y.0Z.0A.0C.0', 'G54.3P0', 'T0', 'M6', 'M26', 'M30']
     for i in program_end:
         pch_txt.append(print_N_number() + i)
     pch_txt.append('%')
@@ -387,9 +395,10 @@ def add_program_end():
 
 def main(apt_txt):
     global pch_txt, loop_N_number_stack, loop_number_stack, cutting_tool_collection, last_pch_point, last_apt_point
-    global block_number, gl, tool_number, feedrate, status_g94_g93_stack
+    global block_number, gl, tool_number, feedrate, initial_c
     #print(';=====')
     #print(last_pch_point.angle.c)
+    initial_c = 0.
     pch_txt = []
     loop_N_number_stack = []
     loop_number_stack = []
@@ -401,7 +410,6 @@ def main(apt_txt):
     gl = 9.999
     tool_number = 0
     feedrate = -999
-    status_g94_g93_stack = []
 
     initial_g_code_status()
 
