@@ -15,6 +15,7 @@ CUTCOM/OFF
 TOOLNO/13,1
 TOOLNO/19,269
 TOOLNO/3,14
+FIXOFTCO/OFF
 $$ OPERATION NAME : Tool Change.1
 $$  Start generation of : Tool Change.1
 MULTAX

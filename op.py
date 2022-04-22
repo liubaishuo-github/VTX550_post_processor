@@ -262,6 +262,13 @@ def INVERSE(apt_str):
         status_should_be['G93'] = 0
         status_should_be['G94'] = 1
     return 0, ''
+def PPRINT(apt):
+    temp = apt[7:].strip()
+    temp = temp.replace('(', '')
+    temp = temp.replace(')', '')
+    temp = temp.replace('/', '')
+    a = '(' + temp + ')'
+    return 1, a
 def LOADTL(apt_str):
     global tool_number, feedrate, last_pch_point, last_apt_point, gl
     tool_number = re.search('\d+', apt_str).group()
@@ -285,13 +292,17 @@ def LOADTL(apt_str):
     n_number_of_if = print_N_number()
     n_number = int(re.search('\d+', n_number_of_if).group())
     output_str.append(n_number_of_if + 'IF[#599EQ{}]GOTO{} (RESTART)'.format(tool_number, str(n_number +3)))
+    if fixture_offset_comp:
+        foc_str = 'G54.3P1'
+    else:
+        foc_str = ''
 
     loadtool_end1 = ['T' + tool_number,
 					 'M6', 'G53G49Z0.',
 					 'G54.3P0',
 					 'G92.1X0.Y0.Z0.A0.C0.',
 					 'G90G54G0C' + str(initial_c),
-					 'G54.3P1',
+					 foc_str,
 					 ]
     for i in loadtool_end1:
         output_str.append(print_N_number() + i)
@@ -339,8 +350,8 @@ def TOOLNO(apt):
     return 2, tool_description
 def OPERATION_NAME(apt):
     temp = apt[apt.find(':') + 1 : ].strip()
-    temp.replace('(', '')
-    temp.replace(')', '')
+    temp = temp.replace('(', '')
+    temp = temp.replace(')', '')
     a = '(' + temp + ')'
     return 1, a
 def STOP(apt):
@@ -377,6 +388,14 @@ def LOOP(apt):
         end_words.append(print_N_number() + 'C' + str(last_pch_point.angle.c))
         end_words.append('(LOOP EEEEEEEEEEEEEEEEEEEEEEEEEEEEND)')
         return 2, end_words
+def FIXOFTCO(apt):
+    global fixture_offset_comp
+    if re.search('ON',apt):
+        fixture_offset_comp = True
+    elif re.search('OFF',apt):
+        fixture_offset_comp = False
+    return 0, ''
+
 
 
 def add_program_head():
@@ -395,7 +414,7 @@ def add_program_end():
 
 def main(apt_txt):
     global pch_txt, loop_N_number_stack, loop_number_stack, cutting_tool_collection, last_pch_point, last_apt_point
-    global block_number, gl, tool_number, feedrate, initial_c
+    global block_number, gl, tool_number, feedrate, initial_c, fixture_offset_comp
     #print(';=====')
     #print(last_pch_point.angle.c)
     initial_c = 0.
@@ -410,6 +429,7 @@ def main(apt_txt):
     gl = 9.999
     tool_number = 0
     feedrate = -999
+    fixture_offset_comp = True
 
     initial_g_code_status()
 
@@ -426,6 +446,8 @@ def main(apt_txt):
                     '\$\$ OPERATION NAME :':'OPERATION_NAME',
                     'TOOLNO':'TOOLNO',
                     'AICC':'AICC',
+                    'PPRINT':'PPRINT',
+                    'FIXOFTCO':'FIXOFTCO'
                     }
 
     add_program_head()
