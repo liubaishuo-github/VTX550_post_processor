@@ -356,6 +356,8 @@ def OPERATION_NAME(apt):
     return 1, a
 def STOP(apt):
     return 1, print_N_number() + 'M0'
+def OPSTOP(apt):
+    return 1, print_N_number() + 'M1'
 def COOLNT(apt):
     if re.search('ON',apt):
         a = 'M20'
@@ -447,7 +449,8 @@ def main(apt_txt):
                     'TOOLNO':'TOOLNO',
                     'AICC':'AICC',
                     'PPRINT':'PPRINT',
-                    'FIXOFTCO':'FIXOFTCO'
+                    'FIXOFTCO':'FIXOFTCO',
+                    'OPSTOP':'OPSTOP',
                     }
 
     add_program_head()
