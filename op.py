@@ -3,6 +3,32 @@ import re, copy, math, os
 class Point():
     def __init__(self):
         self.x , self.y, self.z = 99.0, 99.0, 99.0
+class Canned_cycle_point():
+    def __init__(self):
+        dwell = None
+        inter_feed = None
+        lift_dis = None
+        if canned_cycle_para['dwell'] != None:
+            dwell = int(canned_cycle_para['dwell'] * 1000)
+        if canned_cycle_para['inter_feed'] != None:
+            inter_feed = round(canned_cycle_para['inter_feed'], 4)
+        if canned_cycle_para['lift_dis'] != None:
+            lift_dis = round(canned_cycle_para['lift_dis'], 4)
+
+        self.g73 = {'R':None, 'Q':inter_feed}
+        self.g74 = {'R':None, 'P':dwell}
+        self.g76 = {'R':None, 'Q':lift_dis, 'P':dwell}
+        self.g81 = {'R':None}
+        self.g82 = {'R':None, 'P':dwell}
+        self.g83 = {'R':None, 'Q':inter_feed}
+        self.g84 = {'R':None, 'P':dwell}
+        self.g85 = {'R':None}
+        self.g86 = {'R':None}
+        #self.g87 = {'R':None, 'Q':lift_dis, 'P':dwell}
+        #self.g88 = {'R':None, 'P':dwell}
+        self.g89 = {'R':None, 'P':dwell}
+
+
 class Normal():
     def __init__(self):
         self.i, self.j, self.k = 0.0, 0.0, 0.0
@@ -27,6 +53,7 @@ class Pch_point():
     def __init__(self):
         self.point = Point()
         self.angle = Angle()
+        self.canned_cycle = Canned_cycle_point()
     @staticmethod
     def print_feedrate():
         if status_should_be['G94'] == 1:
@@ -61,6 +88,27 @@ class Pch_point():
         else:
             c_str = 'C[' + str(self.angle.c) + '+#5]'
         return x_str + y_str + z_str + b_str + c_str
+    def print_canned_cycle_point(self): #print R Q P etc...
+
+        if status_should_be['CYCLE'] != 1:
+            return ''
+
+        temp_str = ''
+
+        temp_dict = getattr(self.canned_cycle, current_cycle_gcode())
+        for key in temp_dict.keys():
+            if temp_dict[key] != getattr(last_pch_point.canned_cycle, current_cycle_gcode())[key]:
+                temp_str += key + str(temp_dict[key])
+
+        return temp_str
+    @staticmethod
+    def print_cycle_code():
+        temp = 'G98'
+        for key in status_should_be_cycle.keys():
+            if status_should_be_cycle[key] == 1 and status_under_last_cycle[key] == 0:
+                status_under_last_cycle[key] = 1
+                temp += key
+        return temp
     def print_g_code(self):
         global status_under_last
         g_code_str = ''
@@ -73,14 +121,16 @@ class Pch_point():
                     f_h_str += 'F' + self.print_feedrate()
                 elif key == 'H':
                     f_h_str += key + str(tool_number)
-                else:
+                elif key != 'CYCLE':
                     g_code_str += key
+                elif key == 'CYCLE':
+                    g_code_str += self.print_cycle_code()
 
         return g_code_str, f_h_str
 
 class Cutting_Tool():
     def __init__(self, pocket, lib_number):
-        dir = r'G:\IMSpost\Tooldata\SPWAEC_VTX550'
+        dir = r'G:\IMSpost\Tooldata'
         if not(os.path.exists(dir)):
             print('!! Tooldata not exist !!')
             dir = os.getcwd()
@@ -103,10 +153,13 @@ class Cutting_Tool():
         self.radius = data[9].strip()
 
 def initial_g_code_status():
-    global status_should_be, status_under_last
+    global status_should_be, status_under_last, status_should_be_cycle, status_under_last_cycle
 
-    status_should_be =  {'G90':1, 'G54':1, 'G0':0, 'G1':0, 'G43':1, 'G94':1, 'G93':0, 'F':0, 'H':1}
-    status_under_last = {'G90':0, 'G54':0, 'G0':1, 'G1':0, 'G43':0, 'G94':0, 'G93':0, 'F':0, 'H':0}
+    status_should_be =  {'G90':1, 'G54':1, 'G0':0, 'G1':0, 'G43':1, 'G94':1, 'G93':0, 'F':0, 'H':1, 'CYCLE':0}
+    status_under_last = {'G90':0, 'G54':0, 'G0':1, 'G1':0, 'G43':0, 'G94':0, 'G93':0, 'F':0, 'H':0, 'CYCLE':0}
+    #status_under_last of 'G0':1 , because of setting G0C0.0 after every LOADTL
+    status_should_be_cycle =  {'G73':0, 'G74':0, 'G76':0, 'G81':0, 'G82':0, 'G83':0, 'G84':0, 'G85':0, 'G86':0, 'G87':0, 'G88':0, 'G89':0, }
+    status_under_last_cycle = {'G73':0, 'G74':0, 'G76':0, 'G81':0, 'G82':0, 'G83':0, 'G84':0, 'G85':0, 'G86':0, 'G87':0, 'G88':0, 'G89':0, }
 
 def updata_g_code_status():
     def clear_status(if_one, to_be_zero):
@@ -117,12 +170,20 @@ def updata_g_code_status():
             status_under_last[if_one] =0
     clear_status('G0', 'G1')
     clear_status('G94', 'G93')
+    clear_status('G0', 'CYCLE')
+    clear_status('G1', 'CYCLE')
     status_should_be['G0'] = 0
-    status_should_be['G1'] = 1
+    if status_under_last['CYCLE'] == 0:
+        status_should_be['G1'] = 1
 
     if status_should_be['G93'] ==1:
         status_should_be['F'] = 1
+        status_under_last['F'] = 0
 
+def current_cycle_gcode():
+    for key in status_should_be_cycle.keys():
+        if status_should_be_cycle[key] == 1:
+            return key.lower()
 def print_N_number():
     global block_number
     block_number += 1
@@ -210,9 +271,8 @@ def GOTO(apt_str):
 
         c_pending2 = c_pending1 + pi
         b_pending2 = -b_pending1
-        #print('for bug:',last_pch_point.angle.__dict__)
-        #print('c_pending1=',c_pending1)
-        #print('c_pending2=',c_pending2)
+        print(degrees(c_pending1),'  ', degrees(c_pending2))
+        print(degrees(b_pending1),'  ', degrees(b_pending2))
         if cos(c_pending1 - radians(last_pch_point.angle.c)) >= cos(c_pending2 - radians(last_pch_point.angle.c)):
             c, b = nearest_c(c_pending1), b_pending1
         else:
@@ -229,9 +289,17 @@ def GOTO(apt_str):
     current_pch_point.point.x, current_pch_point.point.y, current_pch_point.point.z\
     ,current_pch_point.angle.b,current_pch_point.angle.c = transf(current_apt_point)
 
+    if status_should_be['CYCLE'] == 1:
+        temp_dict = getattr(current_pch_point.canned_cycle, current_cycle_gcode())
+        temp_dict['R'] = round(current_pch_point.point.z + canned_cycle_para['clear_tip'], 4)
+
+        setattr(current_pch_point.canned_cycle, current_cycle_gcode(), temp_dict)
+
+        current_pch_point.point.z = round(current_pch_point.point.z - canned_cycle_para['total_depth'], 4)
+
     temp = current_pch_point.print_g_code()
 
-    output_str = print_N_number() + temp[0] + current_pch_point.print_point() + temp[1]
+    output_str = print_N_number() + temp[0] + current_pch_point.print_point() + current_pch_point.print_canned_cycle_point() + temp[1]
 
     updata_g_code_status()
 
@@ -354,6 +422,68 @@ def OPERATION_NAME(apt):
     temp = temp.replace(')', '')
     a = '(' + temp + ')'
     return 1, a
+def CYCLE(apt):
+    global status_should_be_cycle, status_under_last_cycle, feedrate, canned_cycle_para
+
+    if re.search('OFF', apt):
+        a = 'G80'
+        status_should_be['CYCLE'] = 0
+        status_under_last['CYCLE'] = 0
+        status_should_be_cycle = dict.fromkeys(status_should_be_cycle, 0)
+        status_under_last_cycle = dict.fromkeys(status_under_last_cycle, 0)
+        canned_cycle_para = dict.fromkeys(canned_cycle_para, None)
+        canned_cycle_para['tip_radius'] = 0
+        last_pch_point.point.z = 99.0  #iniial z value after G80, to prevent accidental z issues
+        return 1, print_N_number() + a
+    else:
+        status_should_be['F'] = 1
+        status_under_last['F'] = 0
+        status_should_be['CYCLE'] = 1
+        status_should_be['G1'] = 0
+        status_should_be['G0'] = 0
+
+        temp = apt.split(',')
+
+        feedrate = round(float(temp[3]),3)
+        canned_cycle_para['total_depth'] = float(temp[1])
+        canned_cycle_para['clear_tip'] = float(temp[5])
+
+        if re.search('/DRILL_G81', apt):
+            status_should_be_cycle['G81'] = 1
+        if re.search('/DRILL_G82', apt):
+            status_should_be_cycle['G82'] = 1
+            canned_cycle_para['dwell'] = float(temp[7])
+        if re.search('/DEEP_G83', apt):
+            status_should_be_cycle['G83'] = 1
+            canned_cycle_para['inter_feed'] = float(temp[7])
+        if re.search('/BRKCHP_G73', apt):
+            status_should_be_cycle['G73'] = 1
+            canned_cycle_para['inter_feed'] = float(temp[7])
+        if re.search('/TAP_G84', apt):
+            status_should_be_cycle['G84'] = 1
+            canned_cycle_para['dwell'] = 0.0
+        if re.search('/LHTAP_G74', apt):
+            status_should_be_cycle['G74'] = 1
+            canned_cycle_para['dwell'] = 0.0
+        if re.search('/BORE_G85', apt):
+            status_should_be_cycle['G85'] = 1
+            canned_cycle_para['tip_radius'] = float(temp[7])
+        if re.search('/BORE_G86', apt):
+            status_should_be_cycle['G86'] = 1
+            canned_cycle_para['tip_radius'] = float(temp[7])
+        if re.search('/BORE_G89', apt):
+            status_should_be_cycle['G89'] = 1
+            canned_cycle_para['dwell'] = float(temp[7])
+            canned_cycle_para['tip_radius'] = float(temp[11])
+        if re.search('/STPBOR_G76', apt):
+            status_should_be_cycle['G76'] = 1
+            canned_cycle_para['dwell'] = float(temp[7])
+            canned_cycle_para['lift_dis'] = abs(float(temp[13]))
+            canned_cycle_para['tip_radius'] = float(temp[15])
+
+
+
+        return 0, ''
 def STOP(apt):
     return 1, print_N_number() + 'M0'
 def OPSTOP(apt):
@@ -416,7 +546,7 @@ def add_program_end():
 
 def main(apt_txt):
     global pch_txt, loop_N_number_stack, loop_number_stack, cutting_tool_collection, last_pch_point, last_apt_point
-    global block_number, gl, tool_number, feedrate, initial_c, fixture_offset_comp
+    global block_number, gl, tool_number, feedrate, initial_c, fixture_offset_comp, canned_cycle_para
     #print(';=====')
     #print(last_pch_point.angle.c)
     initial_c = 0.
@@ -424,6 +554,7 @@ def main(apt_txt):
     loop_N_number_stack = []
     loop_number_stack = []
     cutting_tool_collection = {}
+    canned_cycle_para = {'total_depth':None, 'clear_tip':None, 'dwell':None, 'inter_feed':None, 'lift_dis':None, 'tip_radius':0}
     last_pch_point = Pch_point()
     last_apt_point = Apt_point()
 
@@ -447,6 +578,7 @@ def main(apt_txt):
                     'LOOP':'LOOP',
                     '\$\$ OPERATION NAME :':'OPERATION_NAME',
                     'TOOLNO':'TOOLNO',
+					'CYCLE':'CYCLE',
                     'AICC':'AICC',
                     'PPRINT':'PPRINT',
                     'FIXOFTCO':'FIXOFTCO',

@@ -16,7 +16,7 @@ def main(apt_file_path, pch_file_path):
     pch_txt.insert(0, 'O1' + cvz_number[-3:])
     pch_txt.insert(0, '%')
     dt = datetime.datetime.now()
-    time_str = '(CVZ{}  '.format(cvz_number) + dt.strftime('%a  %b-%d-%Y  %H:%M:%S') + ')'
+    time_str = '(CVZ{}  '.format(cvz_number) + dt.strftime('%a  %b-%d-%Y  %H:%M:%S').upper() + ')'
     pch_txt.insert(2, time_str)
 
 
@@ -24,6 +24,8 @@ def main(apt_file_path, pch_file_path):
     with open(pch_file_path, mode='w', encoding='utf-8') as file_out:
         for i in pch_txt:
             file_out.write(i + '\n')
+
+    print('==================Done======================')
 
 
 
