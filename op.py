@@ -258,7 +258,7 @@ def GOTO(apt_str):
                                 apt_point.point.z + apt_point.normal.k * gl,\
                                 1]).T
         if apt_point.normal.i != 0 or apt_point.normal.j != 0:
-            c_pending1 = atan2(-apt_point.normal.i, apt_point.normal.j)
+            c_pending1 = -atan2(apt_point.normal.i, apt_point.normal.j)
         else:
             print('caution,j,k = 0!')
             if last_pch_point.angle.c == initial_c:
@@ -267,12 +267,12 @@ def GOTO(apt_str):
             else:
                 c_pending1 = radians(last_pch_point.angle.c)
 
-        b_pending1 = atan2(apt_point.normal.j, -apt_point.normal.k * cos(c_pending1))
+        b_pending1 = -atan2(sin(-c_pending1)*apt_point.normal.i + cos(-c_pending1)*apt_point.normal.j, apt_point.normal.k)
 
         c_pending2 = c_pending1 + pi
         b_pending2 = -b_pending1
-        print(degrees(c_pending1),'  ', degrees(c_pending2))
-        print(degrees(b_pending1),'  ', degrees(b_pending2))
+        #print(degrees(c_pending1),'  ', degrees(c_pending2))
+        #print(degrees(b_pending1),'  ', degrees(b_pending2))
         if cos(c_pending1 - radians(last_pch_point.angle.c)) >= cos(c_pending2 - radians(last_pch_point.angle.c)):
             c, b = nearest_c(c_pending1), b_pending1
         else:
