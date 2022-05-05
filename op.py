@@ -279,7 +279,11 @@ def GOTO(apt_str):
             c, b = nearest_c(c_pending2), b_pending2
         pch_xyz = translation_z(-450/25.4) * rot_x(-b) * translation_z(-100/25.4) * rot_z(-c) * apt_plus_gl_point
         x, y, z = pch_xyz[0,0], pch_xyz[1,0], pch_xyz[2,0]
-        return round(x,4), round(y,4), round(z,4), round(degrees(b),3), round(degrees(c),3)
+        return round(x, linear_decimal_digits),\
+                round(y, linear_decimal_digits),\
+                round(z, linear_decimal_digits),\
+                round(degrees(b), angular_decimal_digits),\
+                round(degrees(c), angular_decimal_digits)
 
     current_apt_point = Apt_point()
     current_apt_point.extract_point_and_normal(apt_str)
@@ -291,11 +295,11 @@ def GOTO(apt_str):
 
     if status_should_be['CYCLE'] == 1:
         temp_dict = getattr(current_pch_point.canned_cycle, current_cycle_gcode())
-        temp_dict['R'] = round(current_pch_point.point.z + canned_cycle_para['clear_tip'], 4)
+        temp_dict['R'] = round(current_pch_point.point.z + canned_cycle_para['clear_tip'], linear_decimal_digits)
 
         setattr(current_pch_point.canned_cycle, current_cycle_gcode(), temp_dict)
 
-        current_pch_point.point.z = round(current_pch_point.point.z - canned_cycle_para['total_depth'], 4)
+        current_pch_point.point.z = round(current_pch_point.point.z - canned_cycle_para['total_depth'], linear_decimal_digits)
 
     temp = current_pch_point.print_g_code()
 
@@ -532,7 +536,7 @@ def FIXOFTCO(apt):
 
 def add_program_head():
     global pch_txt
-    program_head = ['G90G20G17G54G64', 'G80', 'G40', 'M25', 'M5', 'M9', '#5205=0', '#5=0', '#580=0.1']
+    program_head = ['G90G20G17G54G64', 'G80', 'G40', 'M25', 'M5', 'M9', '#5205=0.', '#5=0.', '#580=0.1']
     for i in program_head:
         pch_txt.append(i)
 
@@ -547,8 +551,11 @@ def add_program_end():
 def main(apt_txt):
     global pch_txt, loop_N_number_stack, loop_number_stack, cutting_tool_collection, last_pch_point, last_apt_point
     global block_number, gl, tool_number, feedrate, initial_c, fixture_offset_comp, canned_cycle_para
+    global linear_decimal_digits, angular_decimal_digits
     #print(';=====')
     #print(last_pch_point.angle.c)
+    linear_decimal_digits = 5
+    angular_decimal_digits = 4
     initial_c = 0.
     pch_txt = []
     loop_N_number_stack = []

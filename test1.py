@@ -1,10 +1,14 @@
-import os
 
 
 
-pch_default_path = r'G:\NC_POSTING_DATA\OUTPUT_DATA\CRITICAL\TEMP'
+def a():
+    print(sss)
 
-if os.path.exists(pch_default_path):
-    print('yes')
-else:
-    print('no')
+
+
+
+
+def main():
+    global sss
+    sss= 3
+    a()
