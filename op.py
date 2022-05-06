@@ -363,7 +363,7 @@ def LOADTL(apt_str):
 
     n_number_of_if = print_N_number()
     n_number = int(re.search('\d+', n_number_of_if).group())
-    output_str.append(n_number_of_if + 'IF[#599EQ{}]GOTO{} (RESTART)'.format(tool_number, str(n_number +3)))
+    output_str.append(n_number_of_if + 'IF[#994EQ{}]GOTO{} (RESTART)'.format(tool_number, str(n_number +3)))
     if fixture_offset_comp:
         foc_str = 'G54.3P1'
     else:
@@ -531,6 +531,10 @@ def FIXOFTCO(apt):
     elif re.search('OFF',apt):
         fixture_offset_comp = False
     return 0, ''
+def DELAY(apt):
+    temp = int(float(re.search('(\d+\.?\d+|\.\d+|\d+)', apt).group()) * 1000)
+    a ='G4P' + str(temp)
+    return 1, print_N_number() + a
 
 
 
@@ -542,7 +546,7 @@ def add_program_head():
 
 def add_program_end():
     global pch_txt
-    program_end = ['M9', 'M5', 'G0G90G53G49Z.0', 'G80G40', 'X.0Y.0Z.0A.0C.0', 'G54.3P0', 'T0', 'M6', 'M26', 'M30']
+    program_end = ['M9', 'M5', 'G0G90G53G49Z.0', 'G80G40', 'G53X-2.', 'G53Y.0Z.0A.0C.0', 'G54.3P0', 'T0', 'M6', 'M26', 'M30']
     for i in program_end:
         pch_txt.append(print_N_number() + i)
     pch_txt.append('%')
@@ -590,6 +594,7 @@ def main(apt_txt):
                     'PPRINT':'PPRINT',
                     'FIXOFTCO':'FIXOFTCO',
                     'OPSTOP':'OPSTOP',
+                    'DELAY':'DELAY',
                     }
 
     add_program_head()
