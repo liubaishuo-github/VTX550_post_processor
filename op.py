@@ -2,7 +2,7 @@ import re, copy, math, os
 
 class Point():
     def __init__(self):
-        self.x , self.y, self.z = 99.0, 99.0, 99.0
+        self.x , self.y, self.z = 99.0, 99.0, -99.0
 class Canned_cycle_point():
     def __init__(self):
         dwell = None
@@ -188,6 +188,10 @@ def print_N_number():
     global block_number
     block_number += 1
     return 'N' + str(block_number)
+
+def overtravel_check(apt_str, pch_str):
+    assert (last_pch_point.point.z is None) or (last_pch_point.point.z <= 0),\
+        '+Z OVER TRAVEL at:\n{}\n it will be:\n{}'.format(apt_str, pch_str)
 
 def GOTO(apt_str):
     global last_apt_point, last_pch_point, current_apt_point
@@ -437,7 +441,7 @@ def CYCLE(apt):
         status_under_last_cycle = dict.fromkeys(status_under_last_cycle, 0)
         canned_cycle_para = dict.fromkeys(canned_cycle_para, None)
         canned_cycle_para['tip_radius'] = 0
-        last_pch_point.point.z = 99.0  #iniial z value after G80, to prevent accidental z issues
+        last_pch_point.point.z = -99.0  #iniial z value after G80, to prevent accidental z issues
         return 1, print_N_number() + a
     else:
         status_should_be['F'] = 1
@@ -614,6 +618,9 @@ def main(apt_txt):
                 elif temp[0] ==2:
                     pch_txt.extend(temp[1])
                 break
+
+        overtravel_check(i, pch_txt[-1])
+
 
     add_program_end()
 
