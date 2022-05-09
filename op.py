@@ -86,7 +86,10 @@ class Pch_point():
         if self.angle.c == last_pch_point.angle.c:
             c_str = ''
         else:
-            c_str = 'C[' + str(self.angle.c) + '+#5]'
+            if len(loop_number_stack) > 0:
+                c_str = 'C[' + str(self.angle.c) + '+#5]'
+            else:
+                c_str = 'C' + str(self.angle.c)
         return x_str + y_str + z_str + b_str + c_str
     def print_canned_cycle_point(self): #print R Q P etc...
 
@@ -506,13 +509,15 @@ def COOLNT(apt):
 def LOOP(apt):
     global loop_N_number_stack, loop_number_stack
     if re.search('START', apt):
-        loop_number_stack.append(re.search('\d+', apt).group())
-        loop_number_stack.append(re.search('\d+', apt).group())
-        start_words = ['(LOOP SSSSSSSSSSSSSSSSSSSSSSSSSTART)', \
-                    '#575={} (#575 is total loop number)'.format(loop_number_stack.pop()),\
-                    '#576=0 (#576 is initial number)',\
-                    '#577=#576+1 (#577 is current loop number)', \
-                    '#5=0']
+        loop_number = re.search('\d+', apt).group()
+        loop_number_stack.append(loop_number)
+        start_words = [
+                    '(LOOP SSSSSSSSSSSSSSSSSSSSSSSSSTART)',
+                    '#575={} (#575 is total loop number)'.format(loop_number),
+                    '#576=0 (#576 is initial number)',
+                    '#577=#576+1 (#577 is current loop number)',
+                    '#5=#576*360/{}'.format(loop_number),
+					]
         temp = print_N_number() + 'M1'
         loop_N_number_stack.append(re.search('\d+', temp).group())
         start_words.append(temp)
@@ -521,9 +526,13 @@ def LOOP(apt):
 
     if re.search('END', apt):
         temp = print_N_number() + '#5=0'
-        end_words = ['#5=#577*360/{}'.format(loop_number_stack.pop()),\
-                    'IF[#575LE#577]GOTO{}'.format(re.search('\d+', temp).group()),\
-                    '#577=#577+1', 'GOTO{}'.format(loop_N_number_stack.pop())]
+        loop_number = loop_number_stack.pop()
+        end_words = [
+					'#5=#577*360/{}'.format(loop_number),
+                    'IF[#575LE#577]GOTO{}'.format(re.search('\d+', temp).group()),
+                    '#577=#577+1',
+					'GOTO{}'.format(loop_N_number_stack.pop()),
+					]
         end_words.append(temp)
         end_words.append(print_N_number() + 'C' + str(last_pch_point.angle.c))
         end_words.append('(LOOP EEEEEEEEEEEEEEEEEEEEEEEEEEEEND)')
@@ -550,7 +559,7 @@ def add_program_head():
 
 def add_program_end():
     global pch_txt
-    program_end = ['M9', 'M5', 'G0G90G53G49Z.0', 'G80G40', 'G53X-2.', 'G53Y.0Z.0A.0C.0', 'G54.3P0', 'T0', 'M6', 'M26', 'M30']
+    program_end = ['M9', 'M5', 'G0G90G53G49Z.0', 'G80G40', 'G53X0.', 'G53Y.0Z.0A.0C.0', 'G54.3P0', 'T0', 'M6', 'M26', 'M30']
     for i in program_end:
         pch_txt.append(print_N_number() + i)
     pch_txt.append('%')
