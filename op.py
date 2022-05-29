@@ -548,7 +548,9 @@ def DELAY(apt):
     temp = int(float(re.search('(\d+\.?\d+|\.\d+|\d+)', apt).group()) * 1000)
     a ='G4P' + str(temp)
     return 1, print_N_number() + a
-
+def INDIRV(apt):
+    global circle_start_dirtion
+    re.findall('-?\d+\.\d+', apt)
 
 
 def add_program_head():
@@ -608,6 +610,8 @@ def main(apt_txt):
                     'FIXOFTCO':'FIXOFTCO',
                     'OPSTOP':'OPSTOP',
                     'DELAY':'DELAY',
+                    'INDIRV':'INDIRV',
+                    'TLON':'TLON'
                     }
 
     add_program_head()

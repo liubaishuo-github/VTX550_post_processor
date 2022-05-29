@@ -1,14 +1,28 @@
 
 
 
-def a():
-    print(sss)
 
 
+
+
+
+
+def b():
+
+    a()
 
 
 
 def main():
-    global sss
-    sss= 3
-    a()
+    b()
+
+
+
+
+
+
+
+
+
+def hh():
+    print('!!!')
