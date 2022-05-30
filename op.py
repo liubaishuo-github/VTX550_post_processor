@@ -29,7 +29,9 @@ class Canned_cycle_point():
         #self.g87 = {'R':None, 'Q':lift_dis, 'P':dwell}
         #self.g88 = {'R':None, 'P':dwell}
         self.g89 = {'R':None, 'P':dwell}
-
+class Circular_point():
+    def __init__(self):
+        self.i, self.j, self.k = None, None, None
 
 class Normal():
     def __init__(self):
@@ -56,6 +58,7 @@ class Pch_point():
         self.point = Point()
         self.angle = Angle()
         self.canned_cycle = Canned_cycle_point()
+        self.circular_point = Circular_point()
     @staticmethod
     def print_feedrate():
         if status_should_be['G94'] == 1:
@@ -106,6 +109,8 @@ class Pch_point():
                 temp_str += key + str(temp_dict[key])
 
         return temp_str
+    def print_circular_point(self):
+        return 'I' + str(self.circular_point.i) + 'J' + str(self.circular_point.j)
     @staticmethod
     def print_cycle_code():
         temp = 'G98'
@@ -167,17 +172,20 @@ def initial_g_code_status():
     status_under_last_cycle = {'G73':0, 'G74':0, 'G76':0, 'G81':0, 'G82':0, 'G83':0, 'G84':0, 'G85':0, 'G86':0, 'G87':0, 'G88':0, 'G89':0, }
 
 def updata_g_code_status():
-    def clear_status(if_one, to_be_zero):
+    def clear_status_in_fanuc(clear_list):
         global status_under_last
-        if status_should_be[if_one] == 1:
-            status_under_last[to_be_zero] = 0
-        if status_should_be[to_be_zero] == 1:
-            status_under_last[if_one] =0
-    clear_status('G0', 'G1')
-    clear_status('G94', 'G93')
-    clear_status('G0', 'CYCLE')
-    clear_status('G1', 'CYCLE')
-    status_should_be['G0'] = 0
+        for i in clear_list:
+            if status_should_be[i] == 1:
+                for j in clear_list:
+                    if j != i:
+                        status_under_last[j] = 0
+                break
+
+
+    clear_status_in_fanuc(['G0', 'G1', 'CYCLE', 'G2', 'G3'])
+    clear_status_in_fanuc(['G94', 'G93'])
+
+
     if status_under_last['CYCLE'] == 0:
         status_should_be['G1'] = 1
 
@@ -241,21 +249,21 @@ def rot_x(de):
 def transf(apt_point):
 
     def nearest_c(de):
-    ''' de is in radians '''
-    nearest_c = de
-    c = radians(last_pch_point.angle.c)
-    target = c - de
-    if target == 0:
-        return de
-    if c - de > 0:
-        sign = 1
-    else:
-        sign = -1
-    delta = 2 * pi * sign
-    temp = de
-    while fabs(temp - c) > pi:
-        temp = temp + delta
-    return temp
+        ''' de is in radians '''
+        nearest_c = de
+        c = radians(last_pch_point.angle.c)
+        target = c - de
+        if target == 0:
+            return de
+        if c - de > 0:
+            sign = 1
+        else:
+            sign = -1
+        delta = 2 * pi * sign
+        temp = de
+        while fabs(temp - c) > pi:
+            temp = temp + delta
+        return temp
 
     apt_plus_gl_point = mat([apt_point.point.x + apt_point.normal.i * gl,\
                             apt_point.point.y + apt_point.normal.j * gl,\
@@ -290,13 +298,19 @@ def transf(apt_point):
             round(degrees(c), angular_decimal_digits)
 
 def transf_circular_vector(vector):
+    vector.append(1)
     temp = rot_x(radians(-last_pch_point.angle.b)) * rot_z(radians(-last_pch_point.angle.c)) * mat(vector).T
     return temp
 
 def transf_circular_point(point):
+
+    apt_plus_gl_point = mat([point[0] + last_apt_point.normal.i * gl,\
+                            point[1] + last_apt_point.normal.j * gl,\
+                            point[2] + last_apt_point.normal.k * gl,\
+                            1]).T
     temp = translation_z(-450/25.4) * rot_x(radians(-last_pch_point.angle.b)) \
             * translation_z(-100/25.4) * rot_z(radians(-last_pch_point.angle.c)) \
-            * mat(point).T
+            * apt_plus_gl_point
     return temp
 
 
@@ -325,6 +339,7 @@ def GOTO(apt_str):
     output_str = print_N_number() + temp[0] + current_pch_point.print_point() + current_pch_point.print_canned_cycle_point() + temp[1]
 
     updata_g_code_status()
+    status_should_be['G0'] = 0
 
     last_apt_point = current_apt_point
     last_pch_point = current_pch_point
@@ -564,7 +579,7 @@ def INDIRV(apt):
     global circular_start_vector
     temp = re.findall('-?\d+\.\d+', apt)
     circular_start_vector = list(map(float, temp))
-
+    return 0, ''
 def TLON(apt):
     global last_pch_point, last_apt_point, circular_start_vector
 
@@ -575,33 +590,47 @@ def TLON(apt):
     arc_center_apt = temp[0:3]
     arc_end_apt = temp[3:6]
 
-    current_apt_point = last_apt_point
+    current_apt_point = copy.deepcopy(last_apt_point)
     current_apt_point.point.x, current_apt_point.point.y, current_apt_point.point.z = arc_end_apt[0], arc_end_apt[1], arc_end_apt[2]
 
 
     circular_start_vector_pch = transf_circular_vector(circular_start_vector)
     arc_center_pch = transf_circular_point(arc_center_apt)
-    arc_start_pch = mat(last_pch_point.point.x, last_pch_point.point.y, last_pch_point.point.z).T
+    arc_start_pch = mat([last_pch_point.point.x, last_pch_point.point.y, last_pch_point.point.z, 1]).T
     vector_start_to_center = arc_center_pch - arc_start_pch
-    cross_product = cross(vector_start_to_center.T[0], circular_start_vector_pch.T[0])
+    #print(vector_start_to_center.T.tolist()[0][0:3])
+    #print(circular_start_vector_pch.T.tolist()[0][0:3])
+    cross_product = cross(vector_start_to_center.T.tolist()[0][0:3], circular_start_vector_pch.T.tolist()[0][0:3])
+    #print(cross_product)
     if cross_product[2] > 0:
         status_should_be['G2'] = 1
     elif cross_product[2] < 0:
         status_should_be['G3'] = 1
 
 
-    current_pch_point = last_pch_point
+    current_pch_point = copy.deepcopy(last_pch_point)
     temp = transf_circular_point(arc_end_apt)
-    current_pch_point.point.x, current_pch_point.point.y, current_pch_point.point.z = temp[0,0], temp[1,0], temp[2,0]
+    current_pch_point.point.x, current_pch_point.point.y, current_pch_point.point.z = \
+                                                                        round(temp[0,0], linear_decimal_digits), \
+                                                                        round(temp[1,0], linear_decimal_digits), \
+                                                                        round(temp[2,0], linear_decimal_digits)
+
+    current_pch_point.circular_point.i = round(arc_center_pch[0,0] - arc_start_pch[0,0], linear_decimal_digits)
+    current_pch_point.circular_point.j = round(arc_center_pch[1,0] - arc_start_pch[1,0], linear_decimal_digits)
+
 
     temp = current_pch_point.print_g_code()
-    output_str = print_N_number() + temp[0] + current_pch_point.print_point() + temp[1]
-
+    output_str = print_N_number() + temp[0] + current_pch_point.print_point() + current_pch_point.print_circular_point() + temp[1]
+    #print(current_pch_point.point.x, current_pch_point.point.y, current_pch_point.point.z, current_pch_point.angle.b, current_pch_point.angle.c)
+    #print(last_pch_point.point.x, last_pch_point.point.y, last_pch_point.point.z, current_pch_point.angle.b, current_pch_point.angle.c)
 
     updata_g_code_status()
+    status_should_be['G2'] = 0
+    status_should_be['G3'] = 0
+
     last_apt_point = current_apt_point
     last_pch_point = current_pch_point
-
+    return 1, output_str
 
 def add_program_head():
     global pch_txt
