@@ -1,4 +1,6 @@
 import re, copy, math, os
+from numpy import mat, cross
+from math import sin, cos, radians, degrees, asin, atan2, fabs, pi
 
 class Point():
     def __init__(self):
@@ -158,8 +160,8 @@ class Cutting_Tool():
 def initial_g_code_status():
     global status_should_be, status_under_last, status_should_be_cycle, status_under_last_cycle
 
-    status_should_be =  {'G90':1, 'G54':1, 'G0':0, 'G1':0, 'G43':1, 'G94':1, 'G93':0, 'F':0, 'H':1, 'CYCLE':0}
-    status_under_last = {'G90':0, 'G54':0, 'G0':1, 'G1':0, 'G43':0, 'G94':0, 'G93':0, 'F':0, 'H':0, 'CYCLE':0}
+    status_should_be =  {'G90':1, 'G54':1, 'G0':0, 'G1':0, 'G2':0, 'G3':0, 'G43':1, 'G94':1, 'G93':0, 'F':0, 'H':1, 'CYCLE':0}
+    status_under_last = {'G90':0, 'G54':0, 'G0':1, 'G1':0, 'G2':0, 'G3':0, 'G43':0, 'G94':0, 'G93':0, 'F':0, 'H':0, 'CYCLE':0}
     #status_under_last of 'G0':1 , because of setting G0C0.0 after every LOADTL
     status_should_be_cycle =  {'G73':0, 'G74':0, 'G76':0, 'G81':0, 'G82':0, 'G83':0, 'G84':0, 'G85':0, 'G86':0, 'G87':0, 'G88':0, 'G89':0, }
     status_under_last_cycle = {'G73':0, 'G74':0, 'G76':0, 'G81':0, 'G82':0, 'G83':0, 'G84':0, 'G85':0, 'G86':0, 'G87':0, 'G88':0, 'G89':0, }
@@ -191,106 +193,116 @@ def print_N_number():
     global block_number
     block_number += 1
     return 'N' + str(block_number)
-
 def overtravel_check(apt_str, pch_str):
     assert (last_pch_point.point.z is None) or (last_pch_point.point.z <= 0),\
         '+Z OVER TRAVEL at:\n{}\n it will be:\n{}'.format(apt_str, pch_str)
 
+def translation_z(dis):
+    t = mat([
+                [ 1, 0, 0, 0],
+                [ 0, 1, 0, 0],
+                [ 0, 0, 1, dis],
+                [ 0, 0, 0, 1],
+                                ])
+    return t
+def translation_x(dis):
+    t = mat([
+                [ 1, 0, 0, dis],
+                [ 0, 1, 0, 0],
+                [ 0, 0, 1, 0],
+                [ 0, 0, 0, 1],
+                                ])
+    return t
+def rot_y(de):
+    t = mat([
+                [ cos(de), 0, sin(de), 0],
+                [ 0,       1,       0, 0],
+                [-sin(de), 0, cos(de), 0],
+                [0, 0, 0, 1]
+                                            ])
+    return t
+def rot_z(de):
+    t = mat([
+              [ cos(de), -sin(de), 0, 0],
+              [ sin(de),  cos(de), 0, 0],
+              [       0,        0, 1, 0],
+              [0, 0, 0, 1]
+                                          ])
+    return t
+def rot_x(de):
+    t = mat([
+                [1, 0, 0, 0],
+                [0, cos(de), -sin(de), 0],
+                [0, sin(de), cos(de), 0],
+                [0, 0, 0, 1]
+                                            ])
+    return t
+
+def transf(apt_point):
+
+    def nearest_c(de):
+    ''' de is in radians '''
+    nearest_c = de
+    c = radians(last_pch_point.angle.c)
+    target = c - de
+    if target == 0:
+        return de
+    if c - de > 0:
+        sign = 1
+    else:
+        sign = -1
+    delta = 2 * pi * sign
+    temp = de
+    while fabs(temp - c) > pi:
+        temp = temp + delta
+    return temp
+
+    apt_plus_gl_point = mat([apt_point.point.x + apt_point.normal.i * gl,\
+                            apt_point.point.y + apt_point.normal.j * gl,\
+                            apt_point.point.z + apt_point.normal.k * gl,\
+                            1]).T
+    if apt_point.normal.i != 0 or apt_point.normal.j != 0:
+        c_pending1 = -atan2(apt_point.normal.i, apt_point.normal.j)
+    else:
+        print('caution,j,k = 0!')
+        if last_pch_point.angle.c == initial_c:
+            last_pch_point.angle.c = 0.
+            c_pending1 = radians(last_pch_point.angle.c)
+        else:
+            c_pending1 = radians(last_pch_point.angle.c)
+
+    b_pending1 = -atan2(sin(-c_pending1)*apt_point.normal.i + cos(-c_pending1)*apt_point.normal.j, apt_point.normal.k)
+
+    c_pending2 = c_pending1 + pi
+    b_pending2 = -b_pending1
+    #print(degrees(c_pending1),'  ', degrees(c_pending2))
+    #print(degrees(b_pending1),'  ', degrees(b_pending2))
+    if cos(c_pending1 - radians(last_pch_point.angle.c)) >= cos(c_pending2 - radians(last_pch_point.angle.c)):
+        c, b = nearest_c(c_pending1), b_pending1
+    else:
+        c, b = nearest_c(c_pending2), b_pending2
+    pch_xyz = translation_z(-450/25.4) * rot_x(-b) * translation_z(-100/25.4) * rot_z(-c) * apt_plus_gl_point
+    x, y, z = pch_xyz[0,0], pch_xyz[1,0], pch_xyz[2,0]
+    return round(x, linear_decimal_digits),\
+            round(y, linear_decimal_digits),\
+            round(z, linear_decimal_digits),\
+            round(degrees(b), angular_decimal_digits),\
+            round(degrees(c), angular_decimal_digits)
+
+def transf_circular_vector(vector):
+    temp = rot_x(radians(-last_pch_point.angle.b)) * rot_z(radians(-last_pch_point.angle.c)) * mat(vector).T
+    return temp
+
+def transf_circular_point(point):
+    temp = translation_z(-450/25.4) * rot_x(radians(-last_pch_point.angle.b)) \
+            * translation_z(-100/25.4) * rot_z(radians(-last_pch_point.angle.c)) \
+            * mat(point).T
+    return temp
+
+
 def GOTO(apt_str):
     global last_apt_point, last_pch_point, current_apt_point
-    def transf(apt_point):
-        from numpy import mat
-        from math import sin, cos, radians, degrees, \
-                        radians, asin, atan2, fabs, pi
 
-        def translation_z(dis):
-            t = mat([
-                        [ 1, 0, 0, 0],
-                        [ 0, 1, 0, 0],
-                        [ 0, 0, 1, dis],
-                        [ 0, 0, 0, 1],
-                                        ])
-            return t
-        def translation_x(dis):
-            t = mat([
-                        [ 1, 0, 0, dis],
-                        [ 0, 1, 0, 0],
-                        [ 0, 0, 1, 0],
-                        [ 0, 0, 0, 1],
-                                        ])
-            return t
-        def rot_y(de):
-            t = mat([
-                        [ cos(de), 0, sin(de), 0],
-                        [ 0,       1,       0, 0],
-                        [-sin(de), 0, cos(de), 0],
-                        [0, 0, 0, 1]
-                                                    ])
-            return t
-        def rot_z(de):
-            t = mat([
-                      [ cos(de), -sin(de), 0, 0],
-                      [ sin(de),  cos(de), 0, 0],
-                      [       0,        0, 1, 0],
-                      [0, 0, 0, 1]
-                                                  ])
-            return t
-        def rot_x(de):
-            t = mat([
-                        [1, 0, 0, 0],
-                        [0, cos(de), -sin(de), 0],
-                        [0, sin(de), cos(de), 0],
-                        [0, 0, 0, 1]
-                                                    ])
-            return t
-        def nearest_c(de):
-            ''' de is in radians '''
-            nearest_c = de
-            c = radians(last_pch_point.angle.c)
-            target = c - de
-            if target == 0:
-                return de
-            if c - de > 0:
-                sign = 1
-            else:
-                sign = -1
-            delta = 2 * pi * sign
-            temp = de
-            while fabs(temp - c) > pi:
-                temp = temp + delta
-            return temp
-
-        apt_plus_gl_point = mat([apt_point.point.x + apt_point.normal.i * gl,\
-                                apt_point.point.y + apt_point.normal.j * gl,\
-                                apt_point.point.z + apt_point.normal.k * gl,\
-                                1]).T
-        if apt_point.normal.i != 0 or apt_point.normal.j != 0:
-            c_pending1 = -atan2(apt_point.normal.i, apt_point.normal.j)
-        else:
-            print('caution,j,k = 0!')
-            if last_pch_point.angle.c == initial_c:
-                last_pch_point.angle.c = 0.
-                c_pending1 = radians(last_pch_point.angle.c)
-            else:
-                c_pending1 = radians(last_pch_point.angle.c)
-
-        b_pending1 = -atan2(sin(-c_pending1)*apt_point.normal.i + cos(-c_pending1)*apt_point.normal.j, apt_point.normal.k)
-
-        c_pending2 = c_pending1 + pi
-        b_pending2 = -b_pending1
-        #print(degrees(c_pending1),'  ', degrees(c_pending2))
-        #print(degrees(b_pending1),'  ', degrees(b_pending2))
-        if cos(c_pending1 - radians(last_pch_point.angle.c)) >= cos(c_pending2 - radians(last_pch_point.angle.c)):
-            c, b = nearest_c(c_pending1), b_pending1
-        else:
-            c, b = nearest_c(c_pending2), b_pending2
-        pch_xyz = translation_z(-450/25.4) * rot_x(-b) * translation_z(-100/25.4) * rot_z(-c) * apt_plus_gl_point
-        x, y, z = pch_xyz[0,0], pch_xyz[1,0], pch_xyz[2,0]
-        return round(x, linear_decimal_digits),\
-                round(y, linear_decimal_digits),\
-                round(z, linear_decimal_digits),\
-                round(degrees(b), angular_decimal_digits),\
-                round(degrees(c), angular_decimal_digits)
 
     current_apt_point = Apt_point()
     current_apt_point.extract_point_and_normal(apt_str)
@@ -549,8 +561,46 @@ def DELAY(apt):
     a ='G4P' + str(temp)
     return 1, print_N_number() + a
 def INDIRV(apt):
-    global circle_start_dirtion
-    re.findall('-?\d+\.\d+', apt)
+    global circular_start_vector
+    temp = re.findall('-?\d+\.\d+', apt)
+    circular_start_vector = list(map(float, temp))
+
+def TLON(apt):
+    global last_pch_point, last_apt_point, circular_start_vector
+
+    status_should_be['G1'] = 0
+
+    temp = re.findall('-?\d+\.\d+', apt)[-6:]
+    temp = list(map(float, temp))
+    arc_center_apt = temp[0:3]
+    arc_end_apt = temp[3:6]
+
+    current_apt_point = last_apt_point
+    current_apt_point.point.x, current_apt_point.point.y, current_apt_point.point.z = arc_end_apt[0], arc_end_apt[1], arc_end_apt[2]
+
+
+    circular_start_vector_pch = transf_circular_vector(circular_start_vector)
+    arc_center_pch = transf_circular_point(arc_center_apt)
+    arc_start_pch = mat(last_pch_point.point.x, last_pch_point.point.y, last_pch_point.point.z).T
+    vector_start_to_center = arc_center_pch - arc_start_pch
+    cross_product = cross(vector_start_to_center.T[0], circular_start_vector_pch.T[0])
+    if cross_product[2] > 0:
+        status_should_be['G2'] = 1
+    elif cross_product[2] < 0:
+        status_should_be['G3'] = 1
+
+
+    current_pch_point = last_pch_point
+    temp = transf_circular_point(arc_end_apt)
+    current_pch_point.point.x, current_pch_point.point.y, current_pch_point.point.z = temp[0,0], temp[1,0], temp[2,0]
+
+    temp = current_pch_point.print_g_code()
+    output_str = print_N_number() + temp[0] + current_pch_point.print_point() + temp[1]
+
+
+    updata_g_code_status()
+    last_apt_point = current_apt_point
+    last_pch_point = current_pch_point
 
 
 def add_program_head():

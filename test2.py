@@ -1,3 +1,2 @@
-import test1
-
-test1.main()
+a = [1,2,3]
+c,d,e = *a
