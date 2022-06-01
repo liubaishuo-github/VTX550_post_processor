@@ -60,6 +60,14 @@ class Pch_point():
         self.canned_cycle = Canned_cycle_point()
         self.circular_point = Circular_point()
     @staticmethod
+    def f(a):
+        if float(a) == 0:
+            return '0.'
+        if float(a) > 0:
+            return a.lstrip('0')
+        if float(a) < 0:
+            return a.replace('-0', '-')
+    @staticmethod
     def print_feedrate():
         if status_should_be['G94'] == 1:
             return str(feedrate)
@@ -75,26 +83,26 @@ class Pch_point():
         if self.point.x == last_pch_point.point.x:
             x_str = ''
         else:
-            x_str = 'X' + str(self.point.x)
+            x_str = 'X' + self.f(str(self.point.x))
         if self.point.y == last_pch_point.point.y:
             y_str = ''
         else:
-            y_str = 'Y' + str(self.point.y)
+            y_str = 'Y' + self.f(str(self.point.y))
         if self.point.z == last_pch_point.point.z:
             z_str = ''
         else:
-            z_str = 'Z' + str(self.point.z)
+            z_str = 'Z' + self.f(str(self.point.z))
         if self.angle.b == last_pch_point.angle.b:
             b_str = ''
         else:
-            b_str = 'A' + str(self.angle.b)
+            b_str = 'A' + self.f(str(self.angle.b))
         if self.angle.c == last_pch_point.angle.c:
             c_str = ''
         else:
             if len(loop_number_stack) > 0:
-                c_str = 'C[' + str(self.angle.c) + '+#5]'
+                c_str = 'C[' + self.f(str(self.angle.c)) + '+#5]'
             else:
-                c_str = 'C' + str(self.angle.c)
+                c_str = 'C' + self.f(str(self.angle.c))
         return x_str + y_str + z_str + b_str + c_str
     def print_canned_cycle_point(self): #print R Q P etc...
 
@@ -106,11 +114,11 @@ class Pch_point():
         temp_dict = getattr(self.canned_cycle, current_cycle_gcode())
         for key in temp_dict.keys():
             if temp_dict[key] != getattr(last_pch_point.canned_cycle, current_cycle_gcode())[key]:
-                temp_str += key + str(temp_dict[key])
+                temp_str += key + self.f(str(temp_dict[key]))
 
         return temp_str
     def print_circular_point(self):
-        return 'I' + str(self.circular_point.i) + 'J' + str(self.circular_point.j)
+        return 'I' + self.f(str(self.circular_point.i)) + 'J' + self.f(str(self.circular_point.j))
     @staticmethod
     def print_cycle_code():
         temp = 'G98'
