@@ -372,6 +372,8 @@ def INVERSE(apt_str):
     if re.search('ON',apt_str):
         status_should_be['G93'] = 1
         status_should_be['G94'] = 0
+        status_should_be['F'] = 1
+        status_under_last['F'] = 0
     elif re.search('OFF',apt_str):
         status_should_be['G93'] = 0
         status_should_be['G94'] = 1
