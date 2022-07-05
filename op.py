@@ -641,6 +641,13 @@ def TLON(apt):
     last_apt_point = current_apt_point
     last_pch_point = current_pch_point
     return 1, output_str
+def skipproc(apt):
+    global skip_post_process
+    if re.search('ON',apt):
+        skip_post_process = True
+    elif re.search('OFF',apt):
+        skip_post_process = False
+
 
 def add_program_head():
     global pch_txt
@@ -659,7 +666,7 @@ def add_program_end():
 def main(apt_txt):
     global pch_txt, loop_N_number_stack, loop_number_stack, cutting_tool_collection, last_pch_point, last_apt_point
     global block_number, gl, tool_number, feedrate, initial_c, fixture_offset_comp, canned_cycle_para
-    global linear_decimal_digits, angular_decimal_digits
+    global linear_decimal_digits, angular_decimal_digits, skip_post_process
     #print(';=====')
     #print(last_pch_point.angle.c)
     linear_decimal_digits = 5
@@ -678,6 +685,7 @@ def main(apt_txt):
     tool_number = 0
     feedrate = -999
     fixture_offset_comp = True
+    skip_post_process = False
 
     initial_g_code_status()
 
@@ -707,6 +715,13 @@ def main(apt_txt):
 
     for i in apt_txt:
         #print(i)
+        if re.match('SKIPPROC', i):
+            skipproc(i)
+        if skip_post_process:
+            continue
+
+
+
         for key, value in ppword_list.items():
             ppword_match_object = re.match(key,i)
             if ppword_match_object:
