@@ -112,9 +112,14 @@ class Pch_point():
         temp_str = ''
 
         temp_dict = getattr(self.canned_cycle, current_cycle_gcode())
+
         for key in temp_dict.keys():
             if temp_dict[key] != getattr(last_pch_point.canned_cycle, current_cycle_gcode())[key]:
-                temp_str += key + self.f(str(temp_dict[key]))
+                if key != 'P':  # P(dwell time) must not contain decimal point
+                    temp_str += key + self.f(str(temp_dict[key]))
+                else:
+                    temp_str += key + str(temp_dict[key])
+
 
         return temp_str
     def print_circular_point(self):
@@ -427,6 +432,9 @@ def LOADTL(apt_str):
 def SPINDL(apt):
     if re.search('OFF',apt):
         a = 'M5'
+        return 1, print_N_number() + a
+    if re.search('LOCK',apt):
+        a = 'M19'
         return 1, print_N_number() + a
 
     rpm = re.search('\d+', apt).group()
